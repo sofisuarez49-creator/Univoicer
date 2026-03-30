@@ -2928,30 +2928,6 @@
       const selectedUniverseKey = normalizeUniverseName(state.universe || '');
       const universeData = universeMap[selectedUniverseKey] || { totalCharacters: 0, unlockedCharacters: 0, completion: 0, state: 'incomplete' };
       const rarezas = ['Común', 'Raro', 'Épico', 'Legendario'];
-      const universeCharacters = [...new Set(videos.map(v => String(v.personaje || '').trim()).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-      const defaultCharacterForVideo = universeCharacters[0] || '';
-      const getActorsForUniverseCharacter = (characterName) => {
-        if (!characterName) return [];
-        const normalizedCharacter = normalizeName(characterName);
-        const actorsInVideos = videos
-          .filter(v => normalizeName(v.personaje || '') === normalizedCharacter)
-          .map(v => String(v.actor_de_doblaje || '').trim())
-          .filter(Boolean);
-        const blockedActors = Object.entries(state.blockedCharactersByActor || {})
-          .filter(([, list]) => Array.isArray(list) && list.some(item => normalizeName(item) === normalizedCharacter))
-          .map(([actorName]) => String(actorName || '').trim())
-          .filter(Boolean);
-        const merged = [...new Set([...actorsInVideos, ...blockedActors])]
-          .filter(name => normalizeName(name) !== normalizeName('Sin actor'))
-          .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-        return merged.length ? merged : ['Sin actor'];
-      };
-      const characterActorsMap = universeCharacters.reduce((acc, characterName) => {
-        acc[characterName] = getActorsForUniverseCharacter(characterName);
-        return acc;
-      }, {});
-      const defaultActorsForVideo = getActorsForUniverseCharacter(defaultCharacterForVideo);
       const filtered = getFilteredUniverseVideos().filter((video) => {
         const personaje = (video.personaje || '').toLowerCase();
         const actor = (video.actor_de_doblaje || '').toLowerCase();
@@ -3005,35 +2981,26 @@
               <input type="url" name="url_youtube" required placeholder="https://www.youtube.com/watch?v=...">
             </label>
             <label>Personaje (Requerido)
-              <select name="personaje" required ${universeCharacters.length ? '' : 'disabled'}>
-                ${universeCharacters.length
-                  ? universeCharacters.map(name => `<option value="${name}">${name}</option>`).join('')
-                  : '<option value="">No hay personajes en este universo</option>'}
-              </select>
+              <input type="text" name="personaje" required placeholder="Ej. Gokú">
             </label>
             <label>Actor de doblaje (Requerido)
-              <select name="actor_de_doblaje" required ${universeCharacters.length ? '' : 'disabled'}>
-                ${defaultActorsForVideo.map(actorName => `<option value="${actorName}">${actorName}</option>`).join('')}
-              </select>
+              <input type="text" name="actor_de_doblaje" required placeholder="Ej. Mario Castañeda">
             </label>
           ` : `
             <label>Nombre del Personaje (Requerido)
               <input type="text" name="personaje" required placeholder="Ej. Gokú">
+            </label>
+            <label>Actor de doblaje (Opcional)
+              <input type="text" name="actor_de_doblaje" placeholder="Ej. Mario Castañeda">
             </label>
             <label>Rareza
               <select name="rareza">
                 ${rarezas.map(r => `<option value="${r}">${r}</option>`).join('')}
               </select>
             </label>
-            <label>Actores de doblaje (Opcional)
-              <input type="text" name="actor_de_doblaje" placeholder="Ej. Mario Castañeda, Laura Torres">
-            </label>
-            <label>URL de YouTube (Opcional)
-              <input type="url" name="url_youtube" placeholder="https://www.youtube.com/watch?v=...">
-            </label>
           `}
           <div class="actions">
-            <button type="submit" class="neon-btn neon-btn--primary">${state.universeAddMode === 'video' ? 'Desbloquear Personaje' : 'Agregar Personaje'}</button>
+            <button type="submit" class="neon-btn neon-btn--primary">${state.universeAddMode === 'video' ? 'Desbloquear Personaje' : 'Agregar Personaje Bloqueado'}</button>
             <span class="muted" id="videoFormFeedback"></span>
           </div>
         </form>
@@ -3086,8 +3053,6 @@
       const btnToggleVideo = document.getElementById('btn-toggle-video');
       const btnAddBlockedCharacter = document.getElementById('btn-add-blocked-character');
       const formAgregarVideo = document.getElementById('form-agregar-video');
-      const videoCharacterSelect = formAgregarVideo?.querySelector('[name="personaje"]');
-      const videoActorSelect = formAgregarVideo?.querySelector('[name="actor_de_doblaje"]');
       const syncVideoFormUi = () => {
         if (!btnToggleVideo || !formAgregarVideo) return;
         formAgregarVideo.style.display = state.showAddForm ? 'grid' : 'none';
@@ -3119,15 +3084,6 @@
         syncVideoFormUi();
         if (state.showAddForm) formAgregarVideo?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
-      const syncVideoActorOptions = () => {
-        if (!videoCharacterSelect || !videoActorSelect || state.universeAddMode !== 'video') return;
-        const selectedCharacter = String(videoCharacterSelect.value || '');
-        const actors = characterActorsMap[selectedCharacter] || [];
-        videoActorSelect.innerHTML = actors.map(actorName => `<option value="${actorName}">${actorName}</option>`).join('')
-          || '<option value="">Sin actores asociados</option>';
-      };
-      videoCharacterSelect?.addEventListener('change', syncVideoActorOptions);
-      syncVideoActorOptions();
       document.getElementById('editUniverse').onclick = () => {
         const newName = prompt('Nuevo nombre del universo:', state.universe || '');
         if (!newName?.trim()) return;
@@ -3204,53 +3160,35 @@
           }
           
           const rarezaValue = String(formData.get('rareza') || 'Común');
-          const rawUrl = String(formData.get('url_youtube') || '').trim();
-          const normalizedUrl = rawUrl ? normalizeYoutubeUrl(rawUrl) : '';
-          if (rawUrl && !normalizedUrl) {
-            if (feedback) feedback.textContent = 'URL de YouTube inválida.';
-            return;
-          }
-          const metadata = normalizedUrl ? await fetchYoutubeMetadata(normalizedUrl) : null;
-          const actorList = actorName
-            ? [...new Set(actorName.split(',').map(item => item.trim()).filter(Boolean))]
-            : ['Sin actor'];
-          actorList.forEach((actorItem, idx) => {
-            const unlocked = Boolean(normalizedUrl);
-            VIDEOS.push({
-              id: `${unlocked ? 'video' : 'video-bloqueado'}-${Date.now()}-${idx}`,
-              titulo: unlocked
-                ? (metadata?.title || `Saludo de ${characterName}`)
-                : `Registro bloqueado de ${characterName}`,
-              universo: [state.universe],
-              personaje: characterName,
-              actor_de_doblaje: actorItem,
-              url_youtube: unlocked ? normalizedUrl : '',
-              rareza: rarezaValue,
-              thumbnail: unlocked
-                ? (metadata?.thumbnail || createPlaceholderCover(characterName))
-                : createPlaceholderCover(state.universe)
-            });
-            if (unlocked) unlockBlockedCharacterForActor(actorItem, characterName);
-            else if (normalizeName(actorItem) !== normalizeName('Sin actor')) blockCharacterForActor(actorItem, characterName);
+          const actorFinal = actorName || 'Sin actor';
+
+          VIDEOS.push({
+            id: `video-bloqueado-${Date.now()}`,
+            titulo: `Registro bloqueado de ${characterName}`,
+            universo: [state.universe],
+            personaje: characterName,
+            actor_de_doblaje: actorFinal,
+            url_youtube: '',
+            rareza: rarezaValue,
+            thumbnail: createPlaceholderCover(state.universe)
           });
-          saveBlockedCharacters();
+
+          if (actorFinal !== 'Sin actor') {
+            const current = state.blockedCharactersByActor[actorFinal] || [];
+            state.blockedCharactersByActor[actorFinal] = [...new Set([...current, characterName])];
+            saveBlockedCharacters();
+          }
           
           saveVideos();
           refreshDependentViews();
 
-          if (feedback) feedback.textContent = normalizedUrl
-            ? 'Personaje agregado y desbloqueado.'
-            : 'Personaje agregado como bloqueado.';
+          if (feedback) feedback.textContent = 'Personaje agregado como bloqueado.';
           addVideoForm.reset();
           state.showAddForm = false;
           renderUniverseView();
           return;
         }
 
-        if (!characterName) {
-          if (feedback) feedback.textContent = 'Debes elegir un personaje de este universo.';
-          return;
-        }
         const urlInput = String(formData.get('url_youtube') || '').trim();
         const normalizedUrl = normalizeYoutubeUrl(urlInput);
         if (!normalizedUrl) {
@@ -3305,7 +3243,7 @@
 
       viewUniverse.querySelectorAll('[data-open-detail]').forEach(card => {
         card.addEventListener('click', () => {
-          const videoId = String(card.dataset.openDetail || '');
+          const videoId = card.dataset.openDetail;
           state.selectedVideoId = videoId;
           openVideoDetail(videoId);
         });
@@ -3322,8 +3260,7 @@
     }
 
     function openVideoDetail(videoId) {
-      const targetId = String(videoId || '');
-      const video = VIDEOS.find(v => String(v.id || '') === targetId);
+      const video = VIDEOS.find(v => v.id === videoId);
       if (!video) return;
       const personaje = video.personaje || 'Sin personaje';
       const actor = video.actor_de_doblaje || 'Sin actor';
