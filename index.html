@@ -1028,25 +1028,56 @@
       border-color: rgba(122, 220, 255, .9);
       box-shadow: 0 0 0 1px rgba(122, 220, 255, .45), 0 0 22px rgba(91, 160, 255, .3);
     }
+    .collection-character-card {
+      position: relative;
+    }
     .collection-character-card.locked {
-      border-style: dashed;
-      opacity: .9;
-      filter: grayscale(.45);
+      border-style: solid;
+      opacity: 1;
+      filter: none;
+      border-color: color-mix(in srgb, var(--rarity-color, rgba(130, 186, 255, .7)) 78%, white);
+      box-shadow:
+        0 12px 26px rgba(2, 10, 30, .62),
+        0 0 0 1px color-mix(in srgb, var(--rarity-color, rgba(130, 186, 255, .7)) 42%, transparent),
+        0 0 28px color-mix(in srgb, var(--rarity-color, rgba(130, 186, 255, .7)) 26%, transparent);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--rarity-color, #7db5ff) 20%, rgba(10, 18, 36, .94)), rgba(7, 14, 29, .98));
     }
     .collection-character-card .locked-silhouette {
       width: 100%;
       height: 160px;
       display: grid;
       place-items: center;
-      font-size: 2.2rem;
+      gap: 8px;
+      font-size: 2.4rem;
       background:
-        radial-gradient(circle at 50% 30%, rgba(121, 151, 190, .22), transparent 56%),
-        linear-gradient(180deg, rgba(27, 41, 69, .9), rgba(10, 18, 35, .95));
+        radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--rarity-color, rgba(121, 151, 190, .28)) 30%, transparent), transparent 56%),
+        linear-gradient(180deg, color-mix(in srgb, var(--rarity-color, rgba(27, 41, 69, .9)) 24%, rgba(20, 34, 61, .92)), rgba(8, 14, 29, .96));
       color: rgba(223, 243, 255, .82);
       border-bottom: 1px solid rgba(98, 168, 255, .3);
     }
+    .collection-character-card .locked-silhouette .lock-icon {
+      font-size: 1.25rem;
+      letter-spacing: .04em;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--rarity-color, rgba(122, 220, 255, .58)) 60%, white);
+      padding: 4px 12px;
+      background: rgba(3, 8, 20, .66);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+    }
     .collection-character-card.locked .meta {
       color: #abc0d9;
+    }
+    .collection-character-card .meta {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      text-overflow: initial;
+    }
+    .collection-character-card .meta.character-name {
+      font-size: .98rem;
+      font-weight: 800;
+      color: #e8f7ff;
+      letter-spacing: .02em;
     }
     .collection-character-card.unlocked {
       cursor: pointer;
@@ -1244,6 +1275,7 @@
     .rare-raro { background: rgba(15,141,158,.13); color: var(--rare-raro); border-color: rgba(15,141,158,.36); }
     .rare-epico { background: rgba(112,70,223,.13); color: var(--rare-epico); border-color: rgba(112,70,223,.35); }
     .rare-legendario { background: rgba(185,108,0,.14); color: var(--rare-legendario); border-color: rgba(185,108,0,.36); }
+    .rare-bloqueado { background: rgba(126, 144, 175, .14); color: #c6d8ee; border-color: rgba(126, 144, 175, .38); }
 
     .rarity-highlight {
       margin: 4px 0 14px;
@@ -2027,6 +2059,15 @@
       return `rare-${rareza.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
     }
 
+    function rarityColorValue(rareza) {
+      const normalized = String(rareza || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (normalized === 'legendario') return '#ffbb66';
+      if (normalized === 'epico') return '#c58fff';
+      if (normalized === 'raro') return '#66eef7';
+      if (normalized === 'comun') return '#9db2cb';
+      return '#a2b6d4';
+    }
+
     function toEmbedUrl(url, autoplay = 0) {
       const id = getYoutubeId(url);
       return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=${autoplay}&enablejsapi=1`;
@@ -2353,13 +2394,6 @@
           .map(v => v.personaje || 'Sin personaje')
           .filter(Boolean)
       )];
-    }
-
-    function partialName(name) {
-      const clean = String(name || '').trim();
-      if (!clean) return '????';
-      if (clean.length <= 3) return `${clean[0] || '?'}••`;
-      return `${clean.slice(0, 2)}${'•'.repeat(Math.max(2, clean.length - 2))}`;
     }
 
     function getGlobalCharacterCollection() {
@@ -3809,11 +3843,17 @@
               const hadPreviousState = Object.prototype.hasOwnProperty.call(previousSnapshot, character.id);
               const newlyUnlocked = hadPreviousState && !previousSnapshot[character.id] && character.unlocked;
               if (!character.unlocked) {
+                const rarity = character.rareza || 'Bloqueado';
+                const rarityClassName = rarityClass(rarity);
                 return `
-                  <article class="collection-card collection-character-card locked">
-                    <div class="locked-silhouette" aria-hidden="true">👤</div>
+                  <article class="collection-card collection-character-card locked ${rarityClassName}" style="--rarity-color:${rarityColorValue(rarity)};">
+                    <div class="locked-silhouette" aria-hidden="true">
+                      <div>👤</div>
+                      <div class="lock-icon">🔒 BLOQUEADO</div>
+                    </div>
                     <div class="card-footer">
-                      <p class="meta"><small>Personaje:</small>${partialName(character.name)}</p>
+                      <p class="meta character-name">${character.name}</p>
+                      <p class="meta"><small>Rareza:</small><span class="badge ${rarityClassName}">${rarity}</span></p>
                       <p class="meta"><small>Estado:</small>🔒 Bloqueado</p>
                       <p class="meta"><small>Actor:</small>${character.actor || 'Sin actor'}</p>
                     </div>
