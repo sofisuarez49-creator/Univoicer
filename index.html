@@ -21,10 +21,10 @@
       --focus-glow: 0 0 0 3px rgba(41, 242, 255, .22), 0 0 26px rgba(41, 242, 255, .25);
       --ok: #179d6c;
       --ok-soft: rgba(23, 157, 108, .18);
-      --rare-comun: #9db2cb;
-      --rare-raro: #66eef7;
-      --rare-epico: #c58fff;
-      --rare-legendario: #ffbb66;
+      --rare-comun: #52d88a;
+      --rare-raro: #5da8ff;
+      --rare-epico: #b786ff;
+      --rare-legendario: #f4c45a;
       --shadow: 0 18px 40px rgba(2, 8, 20, .62);
       --shadow-soft: 0 10px 24px rgba(3, 11, 29, .52);
       --radius: 22px;
@@ -1446,10 +1446,10 @@
       letter-spacing: .2px;
     }
 
-    .rare-comun { background: rgba(82,97,125,.12); color: var(--rare-comun); border-color: rgba(82,97,125,.35); }
-    .rare-raro { background: rgba(15,141,158,.13); color: var(--rare-raro); border-color: rgba(15,141,158,.36); }
-    .rare-epico { background: rgba(112,70,223,.13); color: var(--rare-epico); border-color: rgba(112,70,223,.35); }
-    .rare-legendario { background: rgba(185,108,0,.14); color: var(--rare-legendario); border-color: rgba(185,108,0,.36); }
+    .rare-comun { background: color-mix(in srgb, var(--rare-comun) 16%, rgba(5, 13, 29, .84)); color: var(--rare-comun); border-color: color-mix(in srgb, var(--rare-comun) 42%, rgba(180, 210, 235, .3)); }
+    .rare-raro { background: color-mix(in srgb, var(--rare-raro) 16%, rgba(5, 13, 29, .84)); color: var(--rare-raro); border-color: color-mix(in srgb, var(--rare-raro) 42%, rgba(180, 210, 235, .3)); }
+    .rare-epico { background: color-mix(in srgb, var(--rare-epico) 16%, rgba(5, 13, 29, .84)); color: var(--rare-epico); border-color: color-mix(in srgb, var(--rare-epico) 42%, rgba(180, 210, 235, .3)); }
+    .rare-legendario { background: color-mix(in srgb, var(--rare-legendario) 16%, rgba(5, 13, 29, .84)); color: var(--rare-legendario); border-color: color-mix(in srgb, var(--rare-legendario) 42%, rgba(180, 210, 235, .3)); }
     .rare-bloqueado { background: rgba(126, 144, 175, .14); color: #c6d8ee; border-color: rgba(126, 144, 175, .38); }
 
     .rarity-highlight {
@@ -1931,9 +1931,9 @@
         0 0 0 1px color-mix(in srgb, var(--rarity-glow) 36%, rgba(243, 249, 255, .52)),
         inset 0 1px 0 rgba(227, 244, 255, .22),
         inset 0 -8px 22px rgba(10, 19, 43, .55),
-        0 12px 28px color-mix(in srgb, var(--rarity-glow) 36%, transparent),
-        0 0 28px color-mix(in srgb, var(--rarity-glow) 48%, transparent),
-        0 0 52px color-mix(in srgb, var(--rarity-glow) 26%, transparent);
+        0 10px 20px color-mix(in srgb, var(--rarity-glow) 24%, transparent),
+        0 0 20px color-mix(in srgb, var(--rarity-glow) 26%, transparent),
+        0 0 34px color-mix(in srgb, var(--rarity-glow) 18%, transparent);
       cursor: pointer;
       text-align: left;
       padding: 0;
@@ -1989,26 +1989,18 @@
         0 1px 1px rgba(5, 10, 18, .72);
     }
     .character-gallery-card[data-rarity="epico"] {
-      border-width: 2px;
-      box-shadow:
-        0 10px 20px rgba(3, 8, 22, .68),
-        0 0 0 1px color-mix(in srgb, var(--rarity-glow) 52%, rgba(245, 250, 255, .72)),
-        inset 0 1px 0 rgba(227, 244, 255, .22),
-        inset 0 -8px 22px rgba(10, 19, 43, .55),
-        0 12px 28px color-mix(in srgb, var(--rarity-glow) 44%, transparent),
-        0 0 36px color-mix(in srgb, var(--rarity-glow) 56%, transparent),
-        0 0 64px color-mix(in srgb, var(--rarity-glow) 32%, transparent);
+      border-color: color-mix(in srgb, var(--rarity-glow) 78%, white 22%);
+    }
+    .character-gallery-card[data-rarity="epico"] .meta,
+    .character-gallery-card[data-rarity="epico"] h3 {
+      border-color: color-mix(in srgb, var(--rarity-glow) 46%, rgba(230, 241, 255, .22));
     }
     .character-gallery-card[data-rarity="legendario"] {
-      border-width: 2px;
-      box-shadow:
-        0 10px 20px rgba(3, 8, 22, .68),
-        0 0 0 1px color-mix(in srgb, var(--rarity-glow) 58%, rgba(255, 245, 225, .8)),
-        inset 0 1px 0 rgba(253, 241, 214, .32),
-        inset 0 -8px 22px rgba(16, 20, 40, .56),
-        0 12px 28px color-mix(in srgb, var(--rarity-glow) 52%, transparent),
-        0 0 40px color-mix(in srgb, var(--rarity-glow) 66%, transparent),
-        0 0 80px color-mix(in srgb, var(--rarity-glow) 38%, transparent);
+      border-color: color-mix(in srgb, var(--rarity-glow) 78%, white 22%);
+    }
+    .character-gallery-card[data-rarity="legendario"] .meta,
+    .character-gallery-card[data-rarity="legendario"] h3 {
+      border-color: color-mix(in srgb, var(--rarity-glow) 46%, rgba(230, 241, 255, .22));
     }
     .character-gallery-card img {
       width: 100%;
@@ -2024,15 +2016,18 @@
       display: grid;
       gap: 4px;
       background: linear-gradient(180deg, rgba(7, 15, 35, .1), rgba(5, 11, 24, .88) 45%);
+      border-top: 1px solid color-mix(in srgb, var(--rarity-glow) 42%, rgba(230, 241, 255, .22));
       position: relative;
       z-index: 1;
     }
     .character-gallery-card h3 {
       margin: 0;
+      padding: 1px 0 3px;
       font-size: 1.02rem;
       font-weight: 800;
       line-height: 1.16;
       color: #f2f8ff;
+      border-bottom: 1px solid color-mix(in srgb, var(--rarity-glow) 46%, rgba(232, 242, 255, .22));
       text-shadow:
         0 1px 0 rgba(5, 10, 23, .72),
         0 0 12px color-mix(in srgb, var(--rarity-glow) 78%, rgba(242, 248, 255, .72)),
@@ -2592,11 +2587,11 @@
 
     function rarityColorValue(rareza) {
       const normalized = String(rareza || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (normalized === 'legendario') return '#ffbb66';
-      if (normalized === 'epico') return '#c58fff';
-      if (normalized === 'raro') return '#66eef7';
-      if (normalized === 'comun') return '#9db2cb';
-      return '#a2b6d4';
+      if (normalized === 'legendario') return '#f4c45a';
+      if (normalized === 'epico') return '#b786ff';
+      if (normalized === 'raro') return '#5da8ff';
+      if (normalized === 'comun') return '#52d88a';
+      return '#8cb8ff';
     }
 
     function toEmbedUrl(url, autoplay = 0) {
