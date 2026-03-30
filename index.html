@@ -1900,42 +1900,86 @@
     .character-preview-popover {
       position: fixed;
       width: min(420px, calc(100vw - 28px));
-      border-radius: 18px;
-      border: 1px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 68%, white);
+      border-radius: 22px;
+      border: 2px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 72%, #eef7ff 28%);
       background:
-        linear-gradient(152deg, rgba(255, 255, 255, .08), transparent 42%),
-        linear-gradient(170deg, rgba(12, 24, 48, .98), rgba(6, 12, 26, .98));
+        radial-gradient(110px 110px at 12% 11%, color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 55%, rgba(255, 255, 255, .3) 45%) 0%, transparent 72%),
+        radial-gradient(140px 140px at 84% 16%, rgba(130, 177, 255, .16) 0%, transparent 72%),
+        linear-gradient(152deg, rgba(255, 255, 255, .14), transparent 42%),
+        linear-gradient(170deg, rgba(10, 22, 50, .985), rgba(5, 12, 29, .985));
       box-shadow:
-        0 18px 34px rgba(3, 8, 22, .8),
-        0 0 36px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 46%, transparent);
+        0 20px 36px rgba(3, 8, 22, .82),
+        0 0 46px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 62%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 46%, rgba(255, 255, 255, .22));
       overflow: hidden;
       z-index: 60;
       pointer-events: none;
       animation: popupIn .2s ease;
+      isolation: isolate;
+    }
+    .character-preview-popover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background:
+        radial-gradient(70px 60px at 6% 8%, rgba(255, 255, 255, .22) 0%, transparent 70%),
+        radial-gradient(80px 80px at 92% 12%, rgba(255, 255, 255, .14) 0%, transparent 72%),
+        radial-gradient(2px 2px at 18% 28%, rgba(233, 245, 255, .7) 0%, transparent 100%),
+        radial-gradient(2px 2px at 78% 20%, rgba(225, 241, 255, .68) 0%, transparent 100%),
+        radial-gradient(1.6px 1.6px at 64% 34%, rgba(225, 241, 255, .56) 0%, transparent 100%);
+      opacity: .9;
+      z-index: -1;
+    }
+    .character-preview-popover::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 16px 28px 18px 30px;
+      border: 1px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 32%, rgba(255, 255, 255, .34));
+      box-shadow:
+        0 0 22px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 24%, transparent),
+        inset 0 0 16px rgba(176, 218, 255, .08);
+      pointer-events: none;
+      opacity: .78;
     }
     .character-preview-popover img {
       width: 100%;
-      height: 250px;
+      height: 258px;
       object-fit: cover;
       display: block;
-      border-bottom: 1px solid rgba(109, 188, 255, .26);
+      border-bottom: 2px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 52%, rgba(173, 212, 255, .25));
       background: rgba(10, 16, 32, .9);
     }
     .character-preview-popover .preview-meta {
-      padding: 12px 14px 14px;
+      padding: 14px 16px 16px;
       display: grid;
-      gap: 8px;
+      gap: 9px;
     }
     .character-preview-popover h3 {
       margin: 0;
-      font-size: 1.1rem;
-      text-shadow: 0 0 14px rgba(106, 205, 255, .28);
+      font-size: 1.26rem;
+      letter-spacing: .01em;
+      line-height: 1.2;
+      text-shadow: 0 0 16px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 44%, rgba(120, 198, 255, .3));
     }
     .character-preview-popover p {
       margin: 0;
-      color: #bdd7f7;
-      font-size: .85rem;
-      line-height: 1.35;
+      color: #c9def8;
+      font-size: .9rem;
+      line-height: 1.45;
+      letter-spacing: .004em;
+    }
+    .character-preview-popover .preview-field-label {
+      color: #9ec2eb;
+      font-weight: 700;
+      margin-right: 5px;
+      font-size: .82rem;
+      text-transform: uppercase;
+      letter-spacing: .055em;
+    }
+    .character-preview-popover .preview-field-value {
+      color: #e8f3ff;
     }
     .indice-toolbar {
       display: flex;
@@ -4301,16 +4345,31 @@
         <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Vista previa de ${item.name}">
         <div class="preview-meta">
           <h3>${item.name}</h3>
-          <p><strong>Rareza:</strong> ${item.rareza || 'Común'}</p>
-          <p><strong>Actores:</strong> ${item.actors.length ? item.actors.join(', ') : 'Sin actores asociados'}</p>
-          <p><strong>Universos:</strong> ${item.universes.length ? item.universes.join(', ') : 'Sin universo'}</p>
+          <p><span class="preview-field-label">Rareza</span><span class="preview-field-value">${item.rareza || 'Común'}</span></p>
+          <p><span class="preview-field-label">Actores</span><span class="preview-field-value">${item.actors.length ? item.actors.join(', ') : 'Sin actores asociados'}</span></p>
+          <p><span class="preview-field-label">Universos</span><span class="preview-field-value">${item.universes.length ? item.universes.join(', ') : 'Sin universo'}</span></p>
         </div>
       `;
       document.body.appendChild(popover);
       const rect = anchorEl.getBoundingClientRect();
       const margin = 12;
-      const left = Math.min(window.innerWidth - popover.offsetWidth - margin, Math.max(margin, rect.right + 10));
-      const top = Math.min(window.innerHeight - popover.offsetHeight - margin, Math.max(margin, rect.top - 10));
+      const spacing = 12;
+      const rightPreferred = rect.right + spacing;
+      const rightFits = rightPreferred + popover.offsetWidth <= window.innerWidth - margin;
+      const leftPreferred = rect.left - popover.offsetWidth - spacing;
+      const left = rightFits
+        ? rightPreferred
+        : Math.max(margin, Math.min(leftPreferred, window.innerWidth - popover.offsetWidth - margin));
+      const topPreferred = rect.top - 8;
+      const bottomPreferred = rect.bottom - popover.offsetHeight;
+      const top = Math.max(
+        margin,
+        Math.min(
+          topPreferred,
+          window.innerHeight - popover.offsetHeight - margin,
+          Math.max(margin, bottomPreferred)
+        )
+      );
       popover.style.left = `${left}px`;
       popover.style.top = `${top}px`;
     }
@@ -4329,7 +4388,7 @@
           state.indicePreviewTimer = setTimeout(() => {
             if (state.indicePreviewCharacter !== characterName || state.indicePreviewAnchor !== card) return;
             showIndiceCharacterPreview(item, card);
-          }, 5000);
+          }, 3000);
         });
 
         card.addEventListener('mouseleave', () => {
