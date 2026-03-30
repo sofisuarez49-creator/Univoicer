@@ -1667,38 +1667,95 @@
       min-height: auto;
     }
     .mock-shell {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 18% 14%, rgba(110, 225, 255, .16), transparent 36%),
+        radial-gradient(circle at 86% 6%, rgba(195, 124, 255, .15), transparent 34%),
+        linear-gradient(160deg, rgba(11, 23, 47, .96), rgba(6, 14, 30, .96));
+      border: 1px solid rgba(120, 203, 255, .44);
+      border-radius: calc(var(--radius) + 2px);
       padding: 18px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(198, 240, 255, .11), 0 0 38px rgba(70, 150, 255, .2);
       display: grid;
       gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .mock-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(222, 244, 255, .15) 1px, transparent 1.4px);
+      background-size: 26px 26px;
+      opacity: .38;
     }
     .characters-gallery {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(118px, 118px));
+      grid-template-columns: repeat(auto-fill, minmax(128px, 128px));
       justify-content: start;
-      gap: 10px;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
     }
     .character-gallery-card {
-      border: 1px solid rgba(111, 180, 255, .35);
-      border-radius: 14px;
+      --rarity-glow: rgba(111, 180, 255, .4);
+      --float-delay: 0s;
+      border: 1px solid color-mix(in srgb, var(--rarity-glow) 62%, white);
+      border-radius: 16px;
       overflow: hidden;
-      background: linear-gradient(170deg, rgba(13, 26, 50, .92), rgba(7, 14, 31, .95));
-      box-shadow: var(--shadow-soft);
+      background:
+        linear-gradient(150deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 46%),
+        linear-gradient(170deg, rgba(22, 37, 72, .96), rgba(12, 16, 36, .96));
+      box-shadow:
+        0 10px 20px rgba(3, 8, 22, .68),
+        inset 0 1px 0 rgba(227, 244, 255, .22),
+        inset 0 -8px 22px rgba(10, 19, 43, .55),
+        0 12px 26px color-mix(in srgb, var(--rarity-glow) 25%, transparent),
+        0 0 22px color-mix(in srgb, var(--rarity-glow) 30%, transparent);
       cursor: pointer;
       text-align: left;
       padding: 0;
-      width: 118px;
-      min-height: 160px;
+      width: 128px;
+      min-height: 188px;
       display: flex;
       flex-direction: column;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: translateY(0) scale(1);
+      transition: transform .26s ease, box-shadow .3s ease, border-color .25s ease, filter .25s ease;
+      animation: cardFloat 5.2s ease-in-out infinite;
+      animation-delay: var(--float-delay);
+    }
+    .character-gallery-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(130deg, rgba(255, 255, 255, .18), transparent 35%, transparent 74%, rgba(113, 217, 255, .12));
+      opacity: .9;
+      mix-blend-mode: screen;
+    }
+    .character-gallery-card::after {
+      content: '';
+      position: absolute;
+      left: 11px;
+      right: 11px;
+      bottom: -8px;
+      height: 12px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--rarity-glow) 72%, transparent);
+      filter: blur(8px);
+      opacity: .72;
     }
     .character-gallery-card:hover {
-      border-color: rgba(111, 239, 255, .82);
-      transform: translateY(-3px);
-      box-shadow: var(--shadow), 0 0 24px rgba(78, 180, 255, .28);
+      border-color: color-mix(in srgb, var(--rarity-glow) 85%, white);
+      transform: translateY(-8px) scale(1.06);
+      box-shadow:
+        0 18px 28px rgba(5, 11, 27, .8),
+        0 0 0 1px color-mix(in srgb, var(--rarity-glow) 62%, white),
+        0 0 34px color-mix(in srgb, var(--rarity-glow) 58%, transparent),
+        inset 0 1px 0 rgba(232, 249, 255, .26);
+      filter: saturate(1.15);
     }
     .character-gallery-card img {
       width: 100%;
@@ -1706,24 +1763,87 @@
       height: auto;
       object-fit: cover;
       display: block;
-      border-bottom: 1px solid rgba(111, 180, 255, .25);
+      border-bottom: 1px solid rgba(111, 180, 255, .28);
       background: rgba(10, 17, 36, .85);
     }
     .character-gallery-card .meta {
       padding: 8px 8px 10px;
       display: grid;
       gap: 3px;
+      background: linear-gradient(180deg, rgba(7, 15, 35, .1), rgba(5, 11, 24, .88) 45%);
+      position: relative;
+      z-index: 1;
     }
     .character-gallery-card h3 {
       margin: 0;
       font-size: .82rem;
       line-height: 1.2;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, .75);
     }
     .character-gallery-card p {
       margin: 0;
       color: #9cc0e6;
       font-size: .75rem;
       line-height: 1.15;
+    }
+    .character-gallery-card[data-locked="true"] {
+      background:
+        linear-gradient(170deg, rgba(76, 84, 102, .9), rgba(34, 37, 46, .95));
+    }
+    .character-gallery-card[data-locked="true"] img {
+      filter: grayscale(1) brightness(.15) contrast(1.25);
+      opacity: .94;
+      border-bottom-color: rgba(171, 187, 210, .24);
+    }
+    .character-gallery-card[data-locked="true"] .meta h3 {
+      color: #eef4ff;
+    }
+    .character-gallery-card[data-locked="true"] .meta p {
+      color: #c5d0e0;
+    }
+    @keyframes cardFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .character-preview-popover {
+      position: fixed;
+      width: min(420px, calc(100vw - 28px));
+      border-radius: 18px;
+      border: 1px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 68%, white);
+      background:
+        linear-gradient(152deg, rgba(255, 255, 255, .08), transparent 42%),
+        linear-gradient(170deg, rgba(12, 24, 48, .98), rgba(6, 12, 26, .98));
+      box-shadow:
+        0 18px 34px rgba(3, 8, 22, .8),
+        0 0 36px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 46%, transparent);
+      overflow: hidden;
+      z-index: 60;
+      pointer-events: none;
+      animation: popupIn .2s ease;
+    }
+    .character-preview-popover img {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      display: block;
+      border-bottom: 1px solid rgba(109, 188, 255, .26);
+      background: rgba(10, 16, 32, .9);
+    }
+    .character-preview-popover .preview-meta {
+      padding: 12px 14px 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .character-preview-popover h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      text-shadow: 0 0 14px rgba(106, 205, 255, .28);
+    }
+    .character-preview-popover p {
+      margin: 0;
+      color: #bdd7f7;
+      font-size: .85rem;
+      line-height: 1.35;
     }
     .indice-toolbar {
       display: flex;
@@ -2015,7 +2135,10 @@
       indiceCharacterFocus: null,
       showAddCharacterForm: false,
       draftCharacterActors: [],
-      draftCharacterFeedback: ''
+      draftCharacterFeedback: '',
+      indicePreviewTimer: null,
+      indicePreviewCharacter: '',
+      indicePreviewAnchor: null
     };
     const UNIVERSES_STORAGE_KEY = 'universes_map_v1';
     const VIDEOS_STORAGE_KEY = 'videos_collection_v1';
@@ -3961,9 +4084,17 @@
       return [...grouped.values()]
         .map((item) => {
           const { unlockedByActor, blockedActors } = getCharacterActorsForIndice(item.name);
+          const universes = [...new Set(item.versions.flatMap(video => getVideoUniverses(video)).filter(Boolean))];
+          const unlockedVersion = item.versions.find(video => hasGreetingVideo(video));
+          const sourceVersion = unlockedVersion || item.versions[0] || null;
+          const rarity = sourceVersion?.rareza || (unlockedByActor.size ? 'Común' : 'Bloqueado');
           return {
             ...item,
-            actorCount: unlockedByActor.size + blockedActors.length
+            actorCount: unlockedByActor.size + blockedActors.length,
+            actors: [...new Set([...unlockedByActor.keys(), ...blockedActors])],
+            universes,
+            rareza: rarity,
+            unlocked: Boolean(unlockedVersion || item.coverVideo)
           };
         })
         .filter(item => !normalizedSearch || normalizeName(item.name).includes(normalizedSearch))
@@ -4055,7 +4186,79 @@
       if (state.actorFocus) renderActoresView();
     }
 
+    function clearIndicePreviewTimer() {
+      if (state.indicePreviewTimer) {
+        clearTimeout(state.indicePreviewTimer);
+        state.indicePreviewTimer = null;
+      }
+    }
+
+    function removeIndicePreviewPopover() {
+      const popover = document.getElementById('characterPreviewPopover');
+      if (popover) popover.remove();
+    }
+
+    function showIndiceCharacterPreview(item, anchorEl) {
+      if (!item || !anchorEl) return;
+      removeIndicePreviewPopover();
+      const popover = document.createElement('article');
+      popover.id = 'characterPreviewPopover';
+      popover.className = 'character-preview-popover';
+      popover.style.setProperty('--preview-rarity', rarityColorValue(item.rareza || 'Común'));
+      popover.innerHTML = `
+        <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Vista previa de ${item.name}">
+        <div class="preview-meta">
+          <h3>${item.name}</h3>
+          <p><strong>Rareza:</strong> ${item.rareza || 'Común'}</p>
+          <p><strong>Actores:</strong> ${item.actors.length ? item.actors.join(', ') : 'Sin actores asociados'}</p>
+          <p><strong>Universos:</strong> ${item.universes.length ? item.universes.join(', ') : 'Sin universo'}</p>
+        </div>
+      `;
+      document.body.appendChild(popover);
+      const rect = anchorEl.getBoundingClientRect();
+      const margin = 12;
+      const left = Math.min(window.innerWidth - popover.offsetWidth - margin, Math.max(margin, rect.right + 10));
+      const top = Math.min(window.innerHeight - popover.offsetHeight - margin, Math.max(margin, rect.top - 10));
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    }
+
+    function bindIndiceCharacterCardPreview(cards, indexItems) {
+      cards.forEach((card) => {
+        const characterName = card.dataset.openCharacter;
+        if (!characterName) return;
+        const item = indexItems.find(entry => entry.name === characterName);
+        if (!item) return;
+
+        card.addEventListener('mouseenter', () => {
+          clearIndicePreviewTimer();
+          state.indicePreviewCharacter = characterName;
+          state.indicePreviewAnchor = card;
+          state.indicePreviewTimer = setTimeout(() => {
+            if (state.indicePreviewCharacter !== characterName || state.indicePreviewAnchor !== card) return;
+            showIndiceCharacterPreview(item, card);
+          }, 5000);
+        });
+
+        card.addEventListener('mouseleave', () => {
+          if (state.indicePreviewCharacter === characterName) {
+            state.indicePreviewCharacter = '';
+            state.indicePreviewAnchor = null;
+          }
+          clearIndicePreviewTimer();
+          removeIndicePreviewPopover();
+        });
+
+        card.addEventListener('blur', () => {
+          clearIndicePreviewTimer();
+          removeIndicePreviewPopover();
+        });
+      });
+    }
+
     function renderIndiceView() {
+      clearIndicePreviewTimer();
+      removeIndicePreviewPopover();
       const focusedCharacter = state.indiceCharacterFocus;
       
       if (focusedCharacter) {
@@ -4348,11 +4551,17 @@
           <input id="indiceSearchInput" type="search" value="${state.indiceSearch}" placeholder="Filtrar personaje..." aria-label="Buscar personaje en índice">
           <section class="characters-gallery">
             ${indexItems.map(item => `
-              <button type="button" class="character-gallery-card" data-open-character="${item.name}">
+              <button
+                type="button"
+                class="character-gallery-card"
+                data-open-character="${item.name}"
+                data-locked="${item.unlocked ? 'false' : 'true'}"
+                style="--rarity-glow:${rarityColorValue(item.rareza || 'Común')}; --float-delay:-${(Math.random() * 2.6).toFixed(2)}s;"
+              >
                 <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Portada de ${item.name}" loading="lazy">
                 <div class="meta">
                   <h3>${item.name}</h3>
-                  <p>${item.actorCount} actor(es) asociado(s)</p>
+                  <p>${item.unlocked ? `${item.actorCount} actor(es) asociado(s)` : 'Personaje bloqueado'} · ${item.rareza || 'Común'}</p>
                 </div>
               </button>
             `).join('') || '<p class="muted">No hay personajes cargados.</p>'}
@@ -4378,6 +4587,7 @@
           renderIndiceView();
         });
       });
+      bindIndiceCharacterCardPreview(viewIndice.querySelectorAll('.character-gallery-card'), indexItems);
     }
 
     function renderMaratonView() {
