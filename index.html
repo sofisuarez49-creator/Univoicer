@@ -1469,6 +1469,26 @@
       gap: 4px;
       color: #d5ecff;
     }
+    .detail-list-soft {
+      list-style: none;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(131, 173, 255, .24);
+      background: linear-gradient(160deg, rgba(15, 31, 56, .86), rgba(19, 40, 72, .72));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      gap: 8px;
+    }
+    .detail-list-soft li {
+      position: relative;
+      padding-left: 14px;
+    }
+    .detail-list-soft li::before {
+      content: '✦';
+      position: absolute;
+      left: 0;
+      color: rgba(111, 239, 255, .85);
+      font-size: .82em;
+    }
     .detail-close {
       justify-self: end;
     }
@@ -3332,7 +3352,10 @@
         VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje)
           .flatMap(v => getVideoUniverses(v))
       )];
-      const saludosActor = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
+      const actoresDelPersonaje = [...new Set(
+        VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje)
+          .map(v => v.actor_de_doblaje || 'Sin actor')
+      )];
       const videoPreviewMarkup = hasPlayableVideo
         ? `
           <img src="${getVideoThumbnail(video)}" alt="Miniatura del video de ${personaje}">
@@ -3374,9 +3397,9 @@
             </section>
             <aside class="hud-panel holo-card">
               <h4 class="section-title">Universos relacionados</h4>
-              <ul class="detail-list terminal-list">${universosRelacionados.map(u => `<li>${u}</li>`).join('') || '<li>Sin datos</li>'}</ul>
-              <h4 class="section-title">Saludos del actor</h4>
-              <ul class="detail-list terminal-list">${saludosActor.map(item => `<li>${item.personaje || 'Sin personaje'} · ${item.titulo || 'Sin título'}</li>`).join('') || '<li>Sin datos</li>'}</ul>
+              <ul class="detail-list detail-list-soft">${universosRelacionados.map(u => `<li>${u}</li>`).join('') || '<li>Sin datos</li>'}</ul>
+              <h4 class="section-title">Actores de doblaje</h4>
+              <ul class="detail-list detail-list-soft">${actoresDelPersonaje.map(nombre => `<li>${nombre}</li>`).join('') || '<li>Sin datos</li>'}</ul>
             </aside>
           </div>
         </article>
