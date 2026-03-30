@@ -3738,12 +3738,12 @@
               class="neon-btn neon-action"
               aria-expanded="${state.showAddForm && state.universeAddMode === 'character' ? 'true' : 'false'}"
             >
-              ${state.showAddForm && state.universeAddMode === 'character' ? 'CERRAR FORMULARIO' : 'AGREGAR PERSONAJE'}
+              ${state.showAddForm && state.universeAddMode === 'character' ? 'CERRAR' : 'AGREGAR PERSONAJE'}
             </button>
           </div>
         </section>
 
-        <form id="form-agregar-video" class="add-video-form">
+        <form id="form-agregar-video" class="add-video-form" style="display:${state.showAddForm ? 'grid' : 'none'};">
           ${state.universeAddMode === 'video' ? `
             <label>URL de YouTube (Requerido)
               <input type="url" name="url_youtube" required placeholder="https://www.youtube.com/watch?v=...">
@@ -3832,17 +3832,6 @@
       const formAgregarVideo = document.getElementById('form-agregar-video');
       const videoCharacterSelect = formAgregarVideo?.querySelector('[name="personaje"]');
       const videoActorSelect = formAgregarVideo?.querySelector('[name="actor_de_doblaje"]');
-      const syncVideoFormUi = () => {
-        if (!btnToggleVideo || !formAgregarVideo) return;
-        formAgregarVideo.style.display = state.showAddForm ? 'grid' : 'none';
-        btnToggleVideo.textContent = state.showAddForm && state.universeAddMode === 'video' ? 'CERRAR' : 'AGREGAR VIDEO';
-        btnToggleVideo.setAttribute('aria-expanded', state.showAddForm && state.universeAddMode === 'video' ? 'true' : 'false');
-        if (btnAddBlockedCharacter) {
-          btnAddBlockedCharacter.textContent = state.showAddForm && state.universeAddMode === 'character' ? 'CERRAR FORMULARIO' : 'AGREGAR PERSONAJE';
-          btnAddBlockedCharacter.setAttribute('aria-expanded', state.showAddForm && state.universeAddMode === 'character' ? 'true' : 'false');
-        }
-      };
-      syncVideoFormUi();
       btnToggleVideo?.addEventListener('click', () => {
         if (state.showAddForm && state.universeAddMode === 'video') {
           state.showAddForm = false;
@@ -3850,8 +3839,8 @@
           state.showAddForm = true;
           state.universeAddMode = 'video';
         }
-        syncVideoFormUi();
-        if (state.showAddForm) formAgregarVideo?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        renderUniverseView();
+        if (state.showAddForm) document.getElementById('form-agregar-video')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       btnAddBlockedCharacter?.addEventListener('click', () => {
         if (state.showAddForm && state.universeAddMode === 'character') {
@@ -3860,8 +3849,8 @@
           state.showAddForm = true;
           state.universeAddMode = 'character';
         }
-        syncVideoFormUi();
-        if (state.showAddForm) formAgregarVideo?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        renderUniverseView();
+        if (state.showAddForm) document.getElementById('form-agregar-video')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       const syncVideoActorOptions = () => {
         if (!videoCharacterSelect || !videoActorSelect || state.universeAddMode !== 'video') return;
