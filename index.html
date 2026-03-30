@@ -923,6 +923,37 @@
       display: inline-flex;
       transform: translateY(-1px);
     }
+    .character-header-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .character-header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .character-action-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .character-action-icon.danger {
+      color: #ffb6b6;
+      border-color: #ff7070;
+      background: rgba(110, 20, 28, .35);
+    }
+    .character-action-icon.danger:hover {
+      border-color: #ff8e8e;
+      background: rgba(130, 28, 37, .5);
+      box-shadow: 0 0 0 1px rgba(255, 126, 126, .35), 0 0 18px rgba(255, 102, 102, .25);
+    }
 
     .filter-sidebar {
       position: fixed;
@@ -1834,6 +1865,164 @@
       outline-offset: 2px;
     }
     .profile-layout { display: grid; gap: 14px; }
+    .character-profile-layout {
+      animation: fade .3s ease;
+    }
+    .character-profile-nav {
+      margin-bottom: 10px;
+    }
+    .character-hero {
+      border-bottom: 1px solid rgba(111, 180, 255, .28);
+      padding-bottom: 20px;
+      align-items: center;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 24px;
+    }
+    .character-hero__avatar {
+      width: 160px;
+      height: 160px;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 1px solid rgba(126, 217, 255, .55);
+      box-shadow:
+        0 0 20px rgba(43, 247, 255, .2),
+        inset 0 1px 0 rgba(227, 248, 255, .28);
+    }
+    .character-hero__content {
+      min-width: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .character-hero__title {
+      font-size: clamp(1.75rem, 1.5rem + 1vw, 2.2rem);
+      margin-bottom: 0;
+    }
+    .character-hero__badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: thin;
+      min-width: 0;
+      padding-bottom: 2px;
+    }
+    .character-hero__badge {
+      --badge-glow: rgba(111, 180, 255, .28);
+      --badge-top: rgba(190, 222, 255, .3);
+      --badge-base: rgba(11, 30, 61, .9);
+      --badge-base-2: rgba(5, 14, 32, .92);
+      --badge-edge: rgba(166, 219, 255, .34);
+      position: relative;
+      margin-top: 0;
+      font-size: clamp(.9rem, .78rem + .35vw, 1.02rem);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--badge-edge);
+      background: linear-gradient(180deg, var(--badge-top), transparent 38%), linear-gradient(165deg, var(--badge-base), var(--badge-base-2));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .26), inset 0 -2px 0 rgba(2, 8, 24, .56), 0 6px 14px rgba(1, 8, 22, .45), 0 0 18px var(--badge-glow);
+      white-space: nowrap;
+      text-shadow: 0 0 10px color-mix(in srgb, var(--badge-glow) 76%, white 24%);
+      flex: 0 0 auto;
+    }
+    .character-hero__badge::before {
+      content: '';
+      position: absolute;
+      inset: 1px 5px auto;
+      height: 42%;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, 0));
+      pointer-events: none;
+    }
+    .character-hero__badge.rare-comun {
+      --badge-glow: color-mix(in srgb, var(--rare-comun) 58%, rgba(120, 214, 165, .35));
+      --badge-top: color-mix(in srgb, var(--rare-comun) 36%, rgba(206, 241, 224, .4));
+      --badge-base: color-mix(in srgb, var(--rare-comun) 20%, rgba(7, 25, 35, .92));
+      --badge-base-2: color-mix(in srgb, var(--rare-comun) 10%, rgba(6, 14, 28, .95));
+      --badge-edge: color-mix(in srgb, var(--rare-comun) 55%, rgba(188, 236, 208, .46));
+    }
+    .character-hero__badge.rare-raro {
+      --badge-glow: color-mix(in srgb, var(--rare-raro) 58%, rgba(116, 186, 255, .35));
+      --badge-top: color-mix(in srgb, var(--rare-raro) 36%, rgba(214, 236, 255, .42));
+      --badge-base: color-mix(in srgb, var(--rare-raro) 20%, rgba(8, 24, 44, .92));
+      --badge-base-2: color-mix(in srgb, var(--rare-raro) 10%, rgba(6, 14, 29, .95));
+      --badge-edge: color-mix(in srgb, var(--rare-raro) 55%, rgba(186, 222, 255, .48));
+    }
+    .character-hero__badge.rare-epico {
+      --badge-glow: color-mix(in srgb, var(--rare-epico) 60%, rgba(188, 131, 255, .34));
+      --badge-top: color-mix(in srgb, var(--rare-epico) 34%, rgba(244, 220, 255, .42));
+      --badge-base: color-mix(in srgb, var(--rare-epico) 22%, rgba(24, 13, 48, .92));
+      --badge-base-2: color-mix(in srgb, var(--rare-epico) 12%, rgba(11, 8, 27, .95));
+      --badge-edge: color-mix(in srgb, var(--rare-epico) 56%, rgba(230, 188, 255, .46));
+    }
+    .character-hero__badge.rare-legendario {
+      --badge-glow: color-mix(in srgb, var(--rare-legendario) 62%, rgba(255, 187, 88, .38));
+      --badge-top: color-mix(in srgb, var(--rare-legendario) 34%, rgba(255, 234, 188, .44));
+      --badge-base: color-mix(in srgb, var(--rare-legendario) 24%, rgba(57, 27, 6, .92));
+      --badge-base-2: color-mix(in srgb, var(--rare-legendario) 12%, rgba(20, 11, 5, .95));
+      --badge-edge: color-mix(in srgb, var(--rare-legendario) 56%, rgba(255, 215, 139, .5));
+    }
+    .character-hero__badge--universes {
+      --badge-glow: rgba(123, 215, 255, .26);
+      max-inline-size: min(100%, 560px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .toon-btn {
+      position: relative;
+      border-radius: 12px;
+      border-width: 1px;
+      border-style: solid;
+      border-color: rgba(126, 215, 255, .68);
+      background: linear-gradient(180deg, rgba(184, 238, 255, .32), rgba(184, 238, 255, 0) 44%), linear-gradient(165deg, rgba(31, 95, 173, .94), rgba(55, 47, 154, .9));
+      box-shadow: inset 0 1px 0 rgba(237, 249, 255, .34), inset 0 -3px 0 rgba(4, 14, 33, .56), 0 8px 0 rgba(3, 9, 24, .45), 0 14px 20px rgba(2, 11, 30, .36);
+      transform: translateY(0);
+      transition: transform .16s ease, box-shadow .18s ease, filter .18s ease, border-color .18s ease;
+      overflow: hidden;
+    }
+    .toon-btn::before {
+      content: '';
+      position: absolute;
+      inset: 1px 8px auto;
+      height: 40%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0));
+      pointer-events: none;
+    }
+    .toon-btn:hover {
+      filter: brightness(1.08);
+      box-shadow: inset 0 1px 0 rgba(245, 252, 255, .4), inset 0 -3px 0 rgba(4, 14, 33, .54), 0 9px 0 rgba(3, 9, 24, .46), 0 16px 24px rgba(2, 11, 30, .4), 0 0 20px rgba(97, 211, 255, .26);
+    }
+    .toon-btn:active {
+      transform: translateY(3px);
+      box-shadow: inset 0 1px 0 rgba(237, 249, 255, .28), inset 0 -1px 0 rgba(4, 14, 33, .56), 0 4px 0 rgba(3, 9, 24, .42), 0 8px 14px rgba(2, 11, 30, .34);
+    }
+    .toon-btn--primary {
+      border-color: rgba(131, 248, 255, .85);
+      background: linear-gradient(180deg, rgba(220, 249, 255, .32), rgba(220, 249, 255, 0) 42%), linear-gradient(165deg, rgba(34, 127, 215, .96), rgba(76, 61, 204, .92));
+    }
+    .toon-btn--danger {
+      color: #ffe5e5;
+      border-color: rgba(255, 174, 174, .82);
+      background: linear-gradient(180deg, rgba(255, 223, 223, .3), rgba(255, 223, 223, 0) 42%), linear-gradient(165deg, rgba(173, 48, 74, .95), rgba(124, 26, 72, .92));
+      box-shadow: inset 0 1px 0 rgba(255, 236, 236, .32), inset 0 -3px 0 rgba(36, 5, 21, .55), 0 8px 0 rgba(25, 4, 17, .42), 0 14px 20px rgba(30, 4, 18, .36);
+    }
+    .character-feedback {
+      text-align: center;
+      font-size: 1.1rem;
+    }
+    .profile-section__title {
+      font-size: 1.2rem;
+      margin-bottom: 14px;
+    }
+    .locked-note {
+      color: #ffb6b6;
+    }
+    .clickable-card {
+      cursor: pointer;
+    }
     .profile-section {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -2487,6 +2676,17 @@
       .universe-gallery-layout { grid-template-columns: 1fr; }
       .universe-header { grid-template-columns: 1fr; }
       .universe-hero { grid-template-columns: 1fr; }
+      .character-hero {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+      .character-hero__content {
+        width: 100%;
+      }
+      .character-hero__badges {
+        justify-content: flex-start;
+      }
       .video-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         justify-content: stretch;
@@ -2521,6 +2721,21 @@
       .actor-character-item:hover {
         transform: none;
         box-shadow: 0 8px 12px rgba(4, 10, 26, .32);
+      }
+      .character-hero {
+        gap: 14px;
+        padding-bottom: 16px;
+      }
+      .character-hero__avatar {
+        width: 138px;
+        height: 138px;
+      }
+      .character-hero__badges {
+        gap: 8px;
+      }
+      .character-hero__badge {
+        font-size: .86rem;
+        padding: 7px 12px;
       }
       .actors-shell::after {
         filter: blur(4px);
@@ -5072,30 +5287,30 @@
           : `<img src="${profileImage}" class="profile-avatar" alt="Avatar de ${focusedCharacter}" loading="lazy">`;
 
         viewIndice.innerHTML = `
-          <section class="hud-panel holo-card profile-layout" style="animation: fade 0.3s ease;">
-            <div class="actions" style="margin-bottom: 10px;">
-              <button id="backToCharacterGallery" class="neon-btn">← Volver al Índice</button>
+          <section class="hud-panel holo-card profile-layout character-profile-layout">
+            <div class="actions character-profile-nav">
+              <button id="backToCharacterGallery" class="neon-btn toon-btn">← Volver al Índice</button>
             </div>
             
-            <div class="universe-hero" style="border-bottom: 1px solid rgba(111, 180, 255, 0.28); padding-bottom: 20px;">
-              ${profileAvatarMarkup}
-              <div>
-                <h2 class="section-title detail-character" style="font-size: 2.2rem; margin-bottom: 8px;">${focusedCharacter}</h2>
-                <div class="detail-meta" style="margin-bottom: 14px; gap: 12px;">
-                  <span class="badge ${rarityClass(rareza)}" style="font-size: 0.9rem; padding: 6px 14px;">🌟 ${rareza}</span>
-                  <span class="badge rare-comun" style="font-size: 0.9rem; padding: 6px 14px;">🪐 Universos: ${universos.join(', ') || 'Ninguno'}</span>
+            <div class="universe-hero character-hero">
+              <img src="${profileImage}" class="character-hero__avatar" alt="Avatar de ${focusedCharacter}">
+              <div class="character-hero__content">
+                <h2 class="section-title detail-character character-hero__title">${focusedCharacter}</h2>
+                <div class="detail-meta character-hero__badges">
+                  <span class="badge character-hero__badge ${rarityClass(rareza)}">🌟 ${rareza}</span>
+                  <span class="badge character-hero__badge character-hero__badge--universes rare-comun">🪐 Universos: ${universos.join(', ') || 'Ninguno'}</span>
                 </div>
                 <div class="actions">
-                  <button id="editCharacterBtn" class="neon-btn neon-btn--primary">✏️ Editar Perfil Completo</button>
-                  <button id="deleteCharacterBtn" class="neon-btn" style="color: #ffb6b6; border-color: #ffb6b6;">🗑️ Eliminar Personaje</button>
+                  <button id="editCharacterBtn" class="neon-btn neon-btn--primary toon-btn toon-btn--primary">✏️ Editar Perfil Completo</button>
+                  <button id="deleteCharacterBtn" class="neon-btn toon-btn toon-btn--danger">🗑️ Eliminar Personaje</button>
                 </div>
               </div>
             </div>
 
-            <p id="indiceCharacterFeedback" class="inline-feedback" aria-live="polite" style="text-align: center; font-size: 1.1rem;"></p>
+            <p id="indiceCharacterFeedback" class="inline-feedback character-feedback" aria-live="polite"></p>
 
             <article class="profile-section">
-              <h4 style="font-size: 1.2rem; margin-bottom: 14px;">🎙️ Actores de doblaje asignados (${actorCards.length})</h4>
+              <h4 class="profile-section__title">🎙️ Actores de doblaje asignados (${actorCards.length})</h4>
               <section class="character-actors-grid">
                 ${actorCards.map(item => item.locked
                   ? `
@@ -5103,7 +5318,7 @@
                       <img src="${createPlaceholderCover(item.actorName)}" alt="Actor bloqueado: ${item.actorName}" loading="lazy">
                       <div class="meta">
                         <h3>${item.actorName} <button type="button" class="neon-btn icon-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar video para ${item.actorName}">+</button></h3>
-                        <p style="color: #ffb6b6;">🔒 Falta Saludo</p>
+                        <p class="locked-note">🔒 Falta Saludo</p>
                       </div>
                     </article>
                   `
@@ -5120,11 +5335,11 @@
             </article>
 
             <article class="profile-section">
-              <h4 style="font-size: 1.2rem; margin-bottom: 14px;">🎬 Videos de Saludos (${realVideos.length})</h4>
+              <h4 class="profile-section__title">🎬 Videos de Saludos (${realVideos.length})</h4>
               ${realVideos.length ? `
                 <div class="video-grid">
                   ${realVideos.map(v => `
-                    <article class="collection-card" data-open-video-modal="${v.id}" style="cursor: pointer;">
+                    <article class="collection-card clickable-card" data-open-video-modal="${v.id}">
                       <div class="card-media">
                         <img class="video-thumb" src="${getVideoThumbnail(v)}" alt="${v.titulo}">
                       </div>
