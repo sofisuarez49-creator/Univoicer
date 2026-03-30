@@ -461,7 +461,7 @@
       box-shadow: none;
       background: transparent;
       z-index: 2;
-      cursor: pointer;
+      cursor: grab;
       padding: 0;
       display: flex;
       flex-direction: column;
@@ -469,6 +469,12 @@
       animation: nodeFloat 5.8s ease-in-out infinite;
       animation-delay: var(--float-delay, 0s);
       transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .universe-node.is-dragging {
+      cursor: grabbing;
+      animation-play-state: paused;
+      z-index: 12;
     }
 
     @keyframes nodeFloat {
@@ -3354,6 +3360,14 @@
       if (!mapCanvas || !mapWorld) return;
 
       const mapShell = viewMap.querySelector('.universe-map-shell');
+      const dragState = {
+        active: false,
+        moved: false,
+        nodeId: null,
+        pointerId: null,
+        offsetX: 0,
+        offsetY: 0
+      };
 
       const syncMapCanvasSize = () => {
         if (!mapShell) return;
@@ -3496,6 +3510,75 @@
       };
 
       viewMap.querySelectorAll('.universe-node').forEach(nodeEl => {
+        const nodeId = nodeEl.dataset.nodeId;
+        const nodeModel = state.universeNodes.find(node => node.id === nodeId);
+        if (!nodeModel) return;
+
+        const getWorldPointFromPointer = (event) => {
+          if (!mapShell) return null;
+          const rect = mapCanvas.getBoundingClientRect();
+          const scale = state.mapViewport.scale || 1;
+          return {
+            x: (event.clientX - rect.left + mapShell.scrollLeft) / scale,
+            y: (event.clientY - rect.top + mapShell.scrollTop) / scale
+          };
+        };
+
+        const finishDrag = (event) => {
+          if (!dragState.active || dragState.nodeId !== nodeId || dragState.pointerId !== event.pointerId) return;
+          dragState.active = false;
+          dragState.nodeId = null;
+          dragState.pointerId = null;
+          dragState.offsetX = 0;
+          dragState.offsetY = 0;
+          nodeEl.classList.remove('is-dragging');
+          if (nodeEl.hasPointerCapture(event.pointerId)) {
+            nodeEl.releasePointerCapture(event.pointerId);
+          }
+          if (dragState.moved) {
+            saveUniverseNodes();
+            setTimeout(() => {
+              dragState.moved = false;
+            }, 0);
+          }
+        };
+
+        nodeEl.addEventListener('pointerdown', (event) => {
+          if (event.button !== 0) return;
+          const worldPoint = getWorldPointFromPointer(event);
+          if (!worldPoint) return;
+          dragState.active = true;
+          dragState.moved = false;
+          dragState.nodeId = nodeId;
+          dragState.pointerId = event.pointerId;
+          dragState.offsetX = worldPoint.x - nodeModel.x;
+          dragState.offsetY = worldPoint.y - nodeModel.y;
+          nodeEl.classList.add('is-dragging');
+          nodeEl.setPointerCapture(event.pointerId);
+          closePopup();
+          event.preventDefault();
+        });
+
+        nodeEl.addEventListener('pointermove', (event) => {
+          if (!dragState.active || dragState.nodeId !== nodeId || dragState.pointerId !== event.pointerId) return;
+          const worldPoint = getWorldPointFromPointer(event);
+          if (!worldPoint) return;
+          const rawX = worldPoint.x - dragState.offsetX;
+          const rawY = worldPoint.y - dragState.offsetY;
+          const boundedX = Math.max(NODE_HALF_WIDTH, Math.min(Math.round(rawX), state.mapCanvas.width - NODE_HALF_WIDTH));
+          const boundedY = Math.max(NODE_HALF_HEIGHT, Math.min(Math.round(rawY), state.mapCanvas.height - NODE_HALF_HEIGHT));
+          if (boundedX !== nodeModel.x || boundedY !== nodeModel.y) {
+            dragState.moved = true;
+            nodeModel.x = boundedX;
+            nodeModel.y = boundedY;
+            nodeEl.style.left = `${boundedX - NODE_HALF_WIDTH}px`;
+            nodeEl.style.top = `${boundedY - NODE_HALF_HEIGHT}px`;
+          }
+        });
+
+        nodeEl.addEventListener('pointerup', finishDrag);
+        nodeEl.addEventListener('pointercancel', finishDrag);
+
         const coverEl = nodeEl.querySelector('.universe-cover');
         coverEl?.addEventListener('error', () => {
           coverEl.classList.add('is-broken');
@@ -3503,6 +3586,7 @@
         });
         nodeEl.addEventListener('click', (event) => {
           event.stopPropagation();
+          if (dragState.moved) return;
           state.universe = nodeEl.dataset.open;
           state.selectedVideoId = null;
           state.showAddForm = false;
@@ -3515,6 +3599,7 @@
 
       mapWorld.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (dragState.active || dragState.moved) return;
         if (!mapShell) return;
         const rect = mapCanvas.getBoundingClientRect();
         const scale = state.mapViewport.scale || 1;
