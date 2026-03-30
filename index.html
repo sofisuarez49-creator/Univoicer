@@ -5365,7 +5365,6 @@
         const charVideos = VIDEOS.filter(v => normalizeName(v.personaje || '') === normalizedCharacter);
         const rareza = charVideos[0]?.rareza || 'Común';
         const universos = [...new Set(charVideos.flatMap(v => getVideoUniverses(v)))].filter(Boolean);
-        const realVideos = charVideos.filter(v => hasGreetingVideo(v));
         
         const { unlockedByActor, blockedActors } = getCharacterActorsForIndice(focusedCharacter);
         const unlockedActors = [...unlockedByActor.entries()]
