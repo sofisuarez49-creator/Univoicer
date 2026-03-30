@@ -6083,14 +6083,38 @@
         const input = document.getElementById('blockedCharacterInput');
         const characterName = String(input?.value || '').trim();
         if (!characterName) return;
-        const withGreeting = getCharactersByActor(actor);
-        if (withGreeting.includes(characterName)) {
+        const normalizedCharacterName = normalizeName(characterName);
+        const canonicalCharacterName = VIDEOS.find((video) => normalizeName(video.personaje || '') === normalizedCharacterName)?.personaje || characterName;
+        const withGreeting = getCharactersByActor(actor).map(name => normalizeName(name));
+        if (withGreeting.includes(normalizedCharacterName)) {
           input.value = '';
           return;
         }
 
+        const alreadyRegisteredBlockedVideo = VIDEOS.some((video) => (
+          normalizeName(video.actor_de_doblaje || '') === normalizeName(actor)
+          && normalizeName(video.personaje || '') === normalizedCharacterName
+          && !hasGreetingVideo(video)
+        ));
+
+        if (!alreadyRegisteredBlockedVideo) {
+          const existingCharacterEntries = VIDEOS.filter((video) => normalizeName(video.personaje || '') === normalizedCharacterName);
+          const inheritedUniverses = [...new Set(existingCharacterEntries.flatMap(item => getVideoUniverses(item)).filter(Boolean))];
+          const inheritedRarity = existingCharacterEntries.find(item => item.rareza)?.rareza || 'Común';
+          VIDEOS.push({
+            id: `video-bloqueado-${Date.now()}`,
+            titulo: `Registro bloqueado de ${canonicalCharacterName}`,
+            universo: inheritedUniverses.length ? inheritedUniverses : [SPECIAL_UNASSIGNED_UNIVERSE],
+            personaje: canonicalCharacterName,
+            actor_de_doblaje: actor,
+            url_youtube: '',
+            rareza: inheritedRarity,
+            thumbnail: createPlaceholderCover(canonicalCharacterName)
+          });
+        }
+
         const current = state.blockedCharactersByActor[actor] || [];
-        state.blockedCharactersByActor[actor] = [...new Set([...current, characterName])];
+        state.blockedCharactersByActor[actor] = [...new Set([...current, canonicalCharacterName])];
 
         saveBlockedCharacters();
         saveVideos();
