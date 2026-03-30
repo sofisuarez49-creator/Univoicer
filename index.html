@@ -1534,6 +1534,21 @@
       display: grid;
       gap: 12px;
     }
+    .actor-rename-modal {
+      z-index: 40;
+    }
+    .actor-rename-panel {
+      width: min(520px, 100%);
+      max-height: min(520px, calc(100vh - 36px));
+      display: grid;
+      gap: 10px;
+    }
+    .actor-rename-panel p.validation {
+      margin: 0;
+      color: #ffb6b6;
+      min-height: 1.2em;
+      font-size: .9rem;
+    }
     .detail-content .holo-card {
       border: 1px solid rgba(130, 214, 255, .52);
       background:
@@ -2259,6 +2274,7 @@
       selectedVideoId: null,
       actorFocus: null,
       actorDetailsExpanded: false,
+      actorRenameModalOpen: false,
       showAddForm: false,
       universeAddMode: 'video',
       marathon: { active: false, queue: [], position: 0 },
@@ -4787,6 +4803,9 @@
         state.actorDetailsExpanded = false;
       }
       const actor = state.actorFocus || null;
+      if (!actor || !state.actorDetailsExpanded) {
+        state.actorRenameModalOpen = false;
+      }
       const actorEntries = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
       const actorVideos = actorEntries.filter(v => hasGreetingVideo(v));
       const actorCharacters = [...new Set(actorEntries.map(v => v.personaje || 'Sin personaje'))];
@@ -4871,6 +4890,22 @@
               </div>
             </article>
           ` : ''}
+          ${actor && state.actorDetailsExpanded && state.actorRenameModalOpen ? `
+            <section id="actorRenameModal" class="detail-modal actor-rename-modal" role="dialog" aria-modal="true" aria-labelledby="actorRenameTitle">
+              <article class="detail-content mock-box actor-rename-panel" data-actor-rename-panel>
+                <h3 id="actorRenameTitle" style="margin: 0;">Renombrar actor</h3>
+                <p class="muted" style="margin: 0;">Actualiza el nombre del actor sin perder sus personajes bloqueados.</p>
+                <label>Nombre del actor
+                  <input id="actorRenameInput" type="text" value="${escapeHtml(actor)}" autocomplete="off">
+                </label>
+                <p id="actorRenameValidation" class="validation" aria-live="polite"></p>
+                <div class="actions">
+                  <button id="saveActorRenameBtn" class="neon-btn neon-btn--primary">Guardar</button>
+                  <button id="cancelActorRenameBtn" class="neon-btn">Cancelar</button>
+                </div>
+              </article>
+            </section>
+          ` : ''}
         </section>
       `;
 
@@ -4923,24 +4958,96 @@
 
       // Edit Actor
       document.getElementById('editActorBtn')?.addEventListener('click', () => {
-        const newName = prompt('Nuevo nombre para el actor:', actor);
-        if(!newName || !newName.trim() || newName === actor) return;
-        const cleanName = newName.trim();
-        VIDEOS.forEach(v => {
-            if (normalizeName(v.actor_de_doblaje) === normalizeName(actor)) {
-                v.actor_de_doblaje = cleanName;
-            }
-        });
-        if (state.blockedCharactersByActor[actor]) {
-            state.blockedCharactersByActor[cleanName] = state.blockedCharactersByActor[actor];
-            delete state.blockedCharactersByActor[actor];
-        }
-        state.actorFocus = cleanName;
-        saveBlockedCharacters();
-        saveVideos();
-        refreshDependentViews();
+        state.actorRenameModalOpen = true;
         renderActoresView();
       });
+      const actorRenameModal = document.getElementById('actorRenameModal');
+      const closeActorRenameModal = () => {
+        state.actorRenameModalOpen = false;
+        renderActoresView();
+      };
+      if (actorRenameModal && actor) {
+        const renameInput = document.getElementById('actorRenameInput');
+        const renameValidation = document.getElementById('actorRenameValidation');
+        const setRenameValidation = (message = '') => {
+          if (renameValidation) renameValidation.textContent = message;
+        };
+        const validateNewActorName = () => {
+          const cleanName = String(renameInput?.value || '').trim();
+          if (!cleanName) {
+            setRenameValidation('El nombre no puede estar vacío.');
+            return null;
+          }
+          if (normalizeName(cleanName) === normalizeName(actor)) {
+            setRenameValidation('Ingresa un nombre diferente al actual.');
+            return null;
+          }
+          const duplicated = actors.some((name) => (
+            normalizeName(name) === normalizeName(cleanName)
+            && normalizeName(name) !== normalizeName(actor)
+          ));
+          if (duplicated) {
+            setRenameValidation('Ya existe un actor con ese nombre.');
+            return null;
+          }
+          setRenameValidation('');
+          return cleanName;
+        };
+
+        requestAnimationFrame(() => {
+          renameInput?.focus();
+          renameInput?.select();
+        });
+
+        renameInput?.addEventListener('input', () => {
+          setRenameValidation('');
+        });
+
+        document.getElementById('cancelActorRenameBtn')?.addEventListener('click', closeActorRenameModal);
+        actorRenameModal.addEventListener('click', (event) => {
+          if (event.target === actorRenameModal) closeActorRenameModal();
+        });
+        document.getElementById('saveActorRenameBtn')?.addEventListener('click', () => {
+          const cleanName = validateNewActorName();
+          if (!cleanName) return;
+          VIDEOS.forEach(v => {
+              if (normalizeName(v.actor_de_doblaje) === normalizeName(actor)) {
+                  v.actor_de_doblaje = cleanName;
+              }
+          });
+          if (state.blockedCharactersByActor[actor]) {
+              state.blockedCharactersByActor[cleanName] = state.blockedCharactersByActor[actor];
+              delete state.blockedCharactersByActor[actor];
+          }
+          state.actorFocus = cleanName;
+          state.actorRenameModalOpen = false;
+          saveBlockedCharacters();
+          saveVideos();
+          refreshDependentViews();
+          renderActoresView();
+        });
+        actorRenameModal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            closeActorRenameModal();
+            return;
+          }
+          if (event.key !== 'Tab') return;
+          const focusable = [...actorRenameModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+            .filter((element) => !element.hasAttribute('disabled'));
+          if (!focusable.length) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          const active = document.activeElement;
+          if (event.shiftKey && active === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && active === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        });
+      }
 
       // Delete Actor
       document.getElementById('deleteActorBtn')?.addEventListener('click', () => {
