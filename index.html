@@ -2116,16 +2116,18 @@
       position: fixed;
       width: min(420px, calc(100vw - 28px));
       border-radius: 22px;
-      border: 2px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 72%, #eef7ff 28%);
+      border: 2px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 70%, #f5fbff 30%);
       background:
-        radial-gradient(110px 110px at 12% 11%, color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 55%, rgba(255, 255, 255, .3) 45%) 0%, transparent 72%),
-        radial-gradient(140px 140px at 84% 16%, rgba(130, 177, 255, .16) 0%, transparent 72%),
-        linear-gradient(152deg, rgba(255, 255, 255, .14), transparent 42%),
-        linear-gradient(170deg, rgba(10, 22, 50, .985), rgba(5, 12, 29, .985));
+        linear-gradient(160deg, rgba(255, 255, 255, .16), transparent 38%),
+        radial-gradient(140px 120px at 12% 10%, color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 60%, rgba(255, 255, 255, .24) 40%) 0%, transparent 72%),
+        radial-gradient(170px 130px at 88% 0%, rgba(110, 160, 255, .22) 0%, transparent 74%),
+        linear-gradient(172deg, rgba(12, 26, 54, .99), rgba(4, 10, 24, .99));
       box-shadow:
-        0 20px 36px rgba(3, 8, 22, .82),
-        0 0 46px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 62%, transparent),
-        0 0 0 1px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 46%, rgba(255, 255, 255, .22));
+        0 28px 48px rgba(2, 7, 19, .86),
+        0 0 58px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 56%, transparent),
+        inset 0 1px 0 rgba(239, 247, 255, .24),
+        inset 0 -22px 40px rgba(0, 0, 0, .42),
+        inset 0 0 0 1px rgba(199, 221, 255, .14);
       overflow: hidden;
       z-index: 60;
       pointer-events: none;
@@ -2138,33 +2140,65 @@
       inset: 0;
       border-radius: inherit;
       background:
-        radial-gradient(70px 60px at 6% 8%, rgba(255, 255, 255, .22) 0%, transparent 70%),
-        radial-gradient(80px 80px at 92% 12%, rgba(255, 255, 255, .14) 0%, transparent 72%),
-        radial-gradient(2px 2px at 18% 28%, rgba(233, 245, 255, .7) 0%, transparent 100%),
-        radial-gradient(2px 2px at 78% 20%, rgba(225, 241, 255, .68) 0%, transparent 100%),
-        radial-gradient(1.6px 1.6px at 64% 34%, rgba(225, 241, 255, .56) 0%, transparent 100%);
-      opacity: .9;
-      z-index: -1;
+        radial-gradient(90px 80px at 8% 8%, rgba(255, 255, 255, .17) 0%, transparent 74%),
+        radial-gradient(104px 88px at 94% 12%, rgba(255, 255, 255, .1) 0%, transparent 72%),
+        linear-gradient(180deg, rgba(255, 255, 255, .08), transparent 24%, transparent 74%, rgba(0, 0, 0, .34) 100%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, .02) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, .012) 0 1px, transparent 1px 3px);
+      mix-blend-mode: screen;
+      opacity: .82;
+      pointer-events: none;
     }
     .character-preview-popover::after {
       content: '';
       position: absolute;
       inset: 8px;
       border-radius: 16px 28px 18px 30px;
-      border: 1px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 32%, rgba(255, 255, 255, .34));
+      border: 1px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 32%, rgba(255, 255, 255, .36));
       box-shadow:
-        0 0 22px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 24%, transparent),
-        inset 0 0 16px rgba(176, 218, 255, .08);
+        0 0 24px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 26%, transparent),
+        inset 0 0 0 1px rgba(219, 236, 255, .08),
+        inset 0 0 18px rgba(176, 218, 255, .12);
       pointer-events: none;
-      opacity: .78;
+      opacity: .84;
+    }
+    .character-preview-popover[data-locked="true"] {
+      border-color: color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 60%, #f5f8ff 40%);
+      background:
+        radial-gradient(2px 2px at 10% 14%, rgba(255, 255, 255, .75) 0, transparent 100%),
+        radial-gradient(1.6px 1.6px at 74% 18%, rgba(255, 255, 255, .72) 0, transparent 100%),
+        radial-gradient(1.8px 1.8px at 24% 46%, rgba(255, 255, 255, .65) 0, transparent 100%),
+        radial-gradient(2px 2px at 88% 40%, rgba(255, 255, 255, .78) 0, transparent 100%),
+        radial-gradient(1.4px 1.4px at 60% 70%, rgba(255, 255, 255, .6) 0, transparent 100%),
+        linear-gradient(175deg, rgba(6, 8, 14, .995), rgba(1, 2, 6, .995));
+      box-shadow:
+        0 30px 56px rgba(0, 0, 0, .9),
+        0 0 42px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 42%, transparent),
+        inset 0 0 0 1px rgba(255, 255, 255, .08),
+        inset 0 -26px 46px rgba(0, 0, 0, .62);
+    }
+    .character-preview-popover[data-locked="true"]::before {
+      background:
+        radial-gradient(2px 2px at 12% 14%, rgba(255, 255, 255, .75) 0, transparent 100%),
+        radial-gradient(1.8px 1.8px at 82% 22%, rgba(255, 255, 255, .7) 0, transparent 100%),
+        radial-gradient(1.6px 1.6px at 26% 58%, rgba(255, 255, 255, .58) 0, transparent 100%),
+        radial-gradient(2px 2px at 72% 66%, rgba(255, 255, 255, .62) 0, transparent 100%),
+        radial-gradient(100px 76px at 14% 2%, rgba(255, 255, 255, .08), transparent 72%),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, .026) 0 1px, transparent 1px 5px);
+      opacity: .66;
     }
     .character-preview-popover img {
       width: 100%;
       height: 258px;
       object-fit: cover;
       display: block;
-      border-bottom: 2px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 52%, rgba(173, 212, 255, .25));
-      background: rgba(10, 16, 32, .9);
+      border-bottom: 2px solid color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 54%, rgba(173, 212, 255, .32));
+      background: linear-gradient(180deg, rgba(14, 24, 50, .92), rgba(6, 11, 24, .98));
+      filter: saturate(1.12) contrast(1.18);
+      box-shadow:
+        inset 0 0 0 1px rgba(213, 235, 255, .14),
+        inset 0 24px 36px rgba(255, 255, 255, .06),
+        inset 0 -28px 38px rgba(0, 0, 0, .44);
     }
     .character-preview-popover .preview-meta {
       padding: 14px 16px 16px;
@@ -2173,28 +2207,34 @@
     }
     .character-preview-popover h3 {
       margin: 0;
-      font-size: 1.26rem;
-      letter-spacing: .01em;
-      line-height: 1.2;
-      text-shadow: 0 0 16px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 44%, rgba(120, 198, 255, .3));
+      font-size: 1.34rem;
+      font-weight: 800;
+      letter-spacing: .018em;
+      line-height: 1.14;
+      color: #f5f9ff;
+      text-shadow:
+        0 1px 0 rgba(255, 255, 255, .2),
+        0 0 18px color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 46%, rgba(120, 198, 255, .28));
     }
     .character-preview-popover p {
       margin: 0;
-      color: #c9def8;
-      font-size: .9rem;
-      line-height: 1.45;
-      letter-spacing: .004em;
+      color: #d3e4fa;
+      font-size: .91rem;
+      line-height: 1.42;
+      letter-spacing: .008em;
     }
     .character-preview-popover .preview-field-label {
-      color: #9ec2eb;
-      font-weight: 700;
-      margin-right: 5px;
-      font-size: .82rem;
+      color: color-mix(in srgb, var(--preview-rarity, rgba(107, 188, 255, .5)) 48%, #cbddf7 52%);
+      font-weight: 800;
+      margin-right: 6px;
+      font-size: .76rem;
       text-transform: uppercase;
-      letter-spacing: .055em;
+      letter-spacing: .09em;
+      opacity: .95;
     }
     .character-preview-popover .preview-field-value {
-      color: #e8f3ff;
+      color: #edf5ff;
+      font-weight: 600;
     }
     .indice-toolbar {
       display: flex;
@@ -4878,6 +4918,7 @@
       const popover = document.createElement('article');
       popover.id = 'characterPreviewPopover';
       popover.className = 'character-preview-popover';
+      popover.dataset.locked = item.unlocked ? 'false' : 'true';
       popover.style.setProperty('--preview-rarity', rarityColorValue(item.rareza || 'Común'));
       popover.innerHTML = `
         <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Vista previa de ${item.name}">
