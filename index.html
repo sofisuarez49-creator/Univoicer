@@ -2208,6 +2208,30 @@
       align-items: center;
       justify-content: space-between;
     }
+    .indice-filter-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(170px, .55fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .indice-group-divider {
+      grid-column: 1 / -1;
+      margin: 14px 0 2px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(111, 180, 255, .2);
+      background: rgba(10, 26, 52, .6);
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #cde8ff;
+    }
+    @media (max-width: 780px) {
+      .indice-filter-row {
+        grid-template-columns: 1fr;
+      }
+    }
     .add-character-form {
       border: 1px solid rgba(118, 208, 255, .38);
       border-radius: 14px;
@@ -2515,6 +2539,7 @@
       blockedCharactersByActor: {},
       characterProfileId: null,
       indiceSearch: '',
+      indiceFilters: { universe: 'todos', actor: 'todos' },
       indiceCharacterFocus: null,
       showAddCharacterForm: false,
       draftCharacterActors: [],
@@ -4681,6 +4706,8 @@
         });
       });
       const normalizedSearch = normalizeName(searchTerm || '');
+      const selectedUniverse = normalizeUniverseName(state.indiceFilters?.universe || 'todos');
+      const selectedActor = normalizeName(state.indiceFilters?.actor || 'todos');
       return [...grouped.values()]
         .map((item) => {
           const { unlockedByActor, blockedActors } = getCharacterActorsForIndice(item.name);
@@ -4698,7 +4725,22 @@
           };
         })
         .filter(item => !normalizedSearch || normalizeName(item.name).includes(normalizedSearch))
-        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+        .filter((item) => {
+          if (selectedUniverse !== 'todos') {
+            const matchesUniverse = item.universes.some((name) => normalizeUniverseName(name) === selectedUniverse);
+            if (!matchesUniverse) return false;
+          }
+          if (selectedActor !== 'todos') {
+            const matchesActor = item.actors.some((name) => normalizeName(name) === selectedActor);
+            if (!matchesActor) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          const rarityDiff = rarityRank(b.rareza) - rarityRank(a.rareza);
+          if (rarityDiff !== 0) return rarityDiff;
+          return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+        });
     }
 
     function getUniverseOptionsForCharacterForm() {
@@ -4716,6 +4758,34 @@
       Object.values(groupByUniverse()).forEach((universe) => registerUniverse(universe.name));
       return [...universeByNormalizedName.values()]
         .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    }
+
+    function getUniverseOptionsForIndiceFilters() {
+      const universeByNormalizedName = new Map();
+      const registerUniverse = (rawName) => {
+        const canonicalName = String(rawName || '').trim();
+        const normalizedName = normalizeUniverseName(canonicalName);
+        if (!normalizedName) return;
+        if (!universeByNormalizedName.has(normalizedName)) universeByNormalizedName.set(normalizedName, canonicalName);
+      };
+      state.universeNodes.forEach((node) => registerUniverse(node.name));
+      Object.values(groupByUniverse()).forEach((universe) => registerUniverse(universe.name));
+      VIDEOS.forEach((video) => getVideoUniverses(video).forEach(registerUniverse));
+      return [...universeByNormalizedName.values()].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    }
+
+    function getActorOptionsForIndiceFilters() {
+      const actorByNormalizedName = new Map();
+      const registerActor = (rawName) => {
+        const canonicalName = String(rawName || '').trim();
+        const normalizedName = normalizeName(canonicalName);
+        if (!normalizedName) return;
+        if (!actorByNormalizedName.has(normalizedName)) actorByNormalizedName.set(normalizedName, canonicalName);
+      };
+      (collectionModel.actors || []).forEach((actor) => registerActor(actor.name));
+      VIDEOS.forEach((video) => registerActor(video.actor_de_doblaje));
+      Object.keys(state.blockedCharactersByActor || {}).forEach(registerActor);
+      return [...actorByNormalizedName.values()].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     }
 
     function addDraftActorFromInput(rawName) {
@@ -5137,6 +5207,22 @@
       // ----------------------------------------------------------------------------------
       const indexItems = getCharactersForIndice(state.indiceSearch);
       const universeOptions = getUniverseOptionsForCharacterForm();
+      const indexUniverseFilters = getUniverseOptionsForIndiceFilters();
+      const indexActorFilters = getActorOptionsForIndiceFilters();
+      const rarityGroupLabels = {
+        Legendario: 'Legendarios',
+        'Épico': 'Épicos',
+        Raro: 'Raros',
+        'Común': 'Comunes',
+        Bloqueado: 'Bloqueados'
+      };
+      const groupedIndexItems = indexItems.reduce((acc, item) => {
+        const rarity = item.rareza || 'Común';
+        if (!acc.has(rarity)) acc.set(rarity, []);
+        acc.get(rarity).push(item);
+        return acc;
+      }, new Map());
+      const rarityRenderOrder = ['Legendario', 'Épico', 'Raro', 'Común', 'Bloqueado'];
       viewIndice.innerHTML = `
         <section class="mock-shell">
           <div class="indice-toolbar">
@@ -5172,28 +5258,53 @@
               ${universeOptions.length ? '' : '<p class="muted">Primero debes crear al menos un universo para poder agregar personajes.</p>'}
             </form>
           ` : ''}
-          <input id="indiceSearchInput" type="search" value="${state.indiceSearch}" placeholder="Filtrar personaje..." aria-label="Buscar personaje en índice">
+          <div class="indice-filter-row">
+            <input id="indiceSearchInput" type="search" value="${state.indiceSearch}" placeholder="Filtrar personaje..." aria-label="Buscar personaje en índice">
+            <select id="indiceUniverseFilter" aria-label="Filtrar por universo">
+              <option value="todos">Todos los universos</option>
+              ${indexUniverseFilters.map((name) => `<option value="${name}" ${state.indiceFilters.universe === name ? 'selected' : ''}>${name}</option>`).join('')}
+            </select>
+            <select id="indiceActorFilter" aria-label="Filtrar por actor">
+              <option value="todos">Todos los actores</option>
+              ${indexActorFilters.map((name) => `<option value="${name}" ${state.indiceFilters.actor === name ? 'selected' : ''}>${name}</option>`).join('')}
+            </select>
+          </div>
           <section class="characters-gallery">
-            ${indexItems.map(item => `
-              <button
-                type="button"
-                class="character-gallery-card"
-                data-open-character="${item.name}"
-                data-rarity="${String(item.rareza || 'Común').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}"
-                data-locked="${item.unlocked ? 'false' : 'true'}"
-                style="--rarity-glow:${rarityColorValue(item.rareza || 'Común')}; --float-delay:-${(Math.random() * 2.6).toFixed(2)}s;"
-              >
-                <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Portada de ${item.name}" loading="lazy">
-                <div class="meta">
-                  <h3>${item.name}</h3>
-                </div>
-              </button>
-            `).join('') || '<p class="muted">No hay personajes cargados.</p>'}
+            ${indexItems.length
+              ? rarityRenderOrder
+                .filter((rarity) => groupedIndexItems.has(rarity))
+                .map((rarity) => `
+                  <p class="indice-group-divider">${rarityGroupLabels[rarity] || rarity}</p>
+                  ${groupedIndexItems.get(rarity).map(item => `
+                    <button
+                      type="button"
+                      class="character-gallery-card"
+                      data-open-character="${item.name}"
+                      data-rarity="${String(item.rareza || 'Común').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}"
+                      data-locked="${item.unlocked ? 'false' : 'true'}"
+                      style="--rarity-glow:${rarityColorValue(item.rareza || 'Común')}; --float-delay:-${(Math.random() * 2.6).toFixed(2)}s;"
+                    >
+                      <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Portada de ${item.name}" loading="lazy">
+                      <div class="meta">
+                        <h3>${item.name}</h3>
+                      </div>
+                    </button>
+                  `).join('')}
+                `).join('')
+              : '<p class="muted">No hay personajes cargados.</p>'}
           </section>
         </section>
       `;
       document.getElementById('indiceSearchInput')?.addEventListener('input', (event) => {
         state.indiceSearch = event.target.value;
+        renderIndiceView();
+      });
+      document.getElementById('indiceUniverseFilter')?.addEventListener('change', (event) => {
+        state.indiceFilters.universe = event.target.value;
+        renderIndiceView();
+      });
+      document.getElementById('indiceActorFilter')?.addEventListener('change', (event) => {
+        state.indiceFilters.actor = event.target.value;
         renderIndiceView();
       });
       document.getElementById('toggleAddCharacterForm')?.addEventListener('click', () => {
