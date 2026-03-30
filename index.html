@@ -2482,6 +2482,7 @@
     const COLLECTION_MODEL_STORAGE_KEY = 'collection_model_v1';
     const BLOCKED_CHARACTERS_STORAGE_KEY = 'blocked_characters_by_actor_v1';
     const CLOUD_STORAGE_PATH = 'univoicerData/main';
+    const SPECIAL_UNASSIGNED_UNIVERSE = 'Sin universo';
     const MAX_LOCAL_IMAGE_BYTES = 2 * 1024 * 1024;
     const NODE_HALF_WIDTH = 110;
     const NODE_HALF_HEIGHT = 93;
@@ -2997,6 +2998,7 @@
       collectionModel = migrateLegacyVideosToModel(VIDEOS);
       saveCollectionModel();
       scheduleCloudSync();
+      renderMapView();
     }
 
     function loadVideosFromStorage() {
@@ -3250,7 +3252,24 @@
 
     function ensureUniverseNodes() {
       const universeMap = groupByUniverse();
-      const names = Array.from(new Set([...Object.keys(universeMap), ...state.universeNodes.map(node => node.name)]));
+      const specialUniverseKey = normalizeUniverseName(SPECIAL_UNASSIGNED_UNIVERSE);
+      const specialUniverseData = universeMap[specialUniverseKey];
+      if (!specialUniverseData || specialUniverseData.totalCharacters === 0) {
+        state.universeNodes = state.universeNodes.filter(
+          node => normalizeUniverseName(node.name) !== specialUniverseKey
+        );
+      }
+
+      const activeUniverseNames = Object.values(universeMap).map(universe => universe.name);
+      const validManualNames = state.universeNodes
+        .map(node => node.name)
+        .filter((name) => {
+          const normalized = normalizeUniverseName(name);
+          if (!normalized) return false;
+          if (normalized === specialUniverseKey) return Boolean(specialUniverseData?.totalCharacters);
+          return true;
+        });
+      const names = Array.from(new Set([...activeUniverseNames, ...validManualNames]));
       if (!names.length) return;
 
       const existingByName = new Map(state.universeNodes.map(node => [normalizeUniverseName(node.name), node]));
