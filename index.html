@@ -4561,7 +4561,6 @@
                 <img src="${item.coverVideo ? getVideoThumbnail(item.coverVideo) : createPlaceholderCover(item.name)}" alt="Portada de ${item.name}" loading="lazy">
                 <div class="meta">
                   <h3>${item.name}</h3>
-                  <p>${item.unlocked ? `${item.actorCount} actor(es) asociado(s)` : 'Personaje bloqueado'} · ${item.rareza || 'Común'}</p>
                 </div>
               </button>
             `).join('') || '<p class="muted">No hay personajes cargados.</p>'}
