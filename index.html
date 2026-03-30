@@ -2325,20 +2325,60 @@
     }
     .character-actors-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+      gap: 14px;
       align-items: start;
     }
     .character-actor-card {
-      border: 1px solid rgba(111, 180, 255, .35);
-      border-radius: 12px;
+      --card-border-top: rgba(176, 230, 255, .42);
+      --card-border-bottom: rgba(17, 36, 72, .85);
+      border: 1px solid rgba(111, 180, 255, .32);
+      border-radius: 14px;
       overflow: hidden;
-      background: linear-gradient(170deg, rgba(13, 26, 50, .92), rgba(7, 14, 31, .95));
-      box-shadow: var(--shadow-soft);
+      position: relative;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(114, 218, 255, .18), transparent 52%),
+        linear-gradient(160deg, rgba(19, 40, 73, .9), rgba(11, 22, 45, .96) 58%, rgba(6, 12, 28, .98));
+      box-shadow:
+        inset 0 1px 0 var(--card-border-top),
+        inset 0 -1px 0 var(--card-border-bottom),
+        0 0 0 1px rgba(49, 118, 196, .24),
+        0 11px 26px rgba(3, 8, 22, .5),
+        0 0 26px rgba(57, 135, 214, .22);
       text-align: left;
       padding: 0;
       width: 100%;
       min-width: 0;
+    }
+    .character-actor-card::before,
+    .character-actor-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .character-actor-card::before {
+      background:
+        radial-gradient(1px 1px at 15% 20%, rgba(232, 245, 255, .22), transparent 70%),
+        radial-gradient(1.2px 1.2px at 66% 40%, rgba(224, 239, 255, .16), transparent 75%),
+        radial-gradient(1px 1px at 82% 74%, rgba(198, 232, 255, .14), transparent 72%),
+        radial-gradient(130% 90% at 100% 0, rgba(120, 222, 255, .09), transparent 58%);
+      mix-blend-mode: screen;
+      opacity: .68;
+    }
+    .character-actor-card::after {
+      inset: -2px;
+      border-radius: inherit;
+      box-shadow:
+        0 0 0 1px rgba(142, 224, 255, .2),
+        0 0 18px rgba(74, 177, 255, .2);
+      opacity: .75;
+    }
+    .character-actor-card > * {
+      position: relative;
+      z-index: 1;
     }
     .character-actor-card img {
       width: 100%;
@@ -2347,38 +2387,103 @@
       object-fit: cover;
       display: block;
       background: rgba(10, 17, 36, .85);
-      border-bottom: 1px solid rgba(111, 180, 255, .25);
+      border-bottom: 1px solid rgba(111, 180, 255, .2);
+      transition: filter .26s ease, transform .26s ease, opacity .26s ease;
     }
     .character-actor-card .meta {
-      padding: 10px 12px 12px;
+      padding: 11px 12px 12px;
       display: grid;
-      gap: 4px;
+      gap: 6px;
     }
     .character-actor-card h3 {
       margin: 0;
-      font-size: .95rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
     .character-actor-card p {
       margin: 0;
-      color: #9cc0e6;
-      font-size: .84rem;
+      color: #c3d8f4;
+      font-size: .83rem;
+      line-height: 1.3;
     }
     .character-actor-card.unlocked {
       cursor: pointer;
-      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease, filter .25s ease;
+      border-color: rgba(136, 229, 255, .46);
     }
     .character-actor-card.unlocked:hover {
-      border-color: rgba(111, 239, 255, .82);
+      border-color: rgba(155, 239, 255, .92);
       transform: translateY(-3px);
-      box-shadow: var(--shadow), 0 0 20px rgba(78, 180, 255, .24);
+      box-shadow:
+        inset 0 1px 0 rgba(206, 241, 255, .5),
+        inset 0 -1px 0 rgba(17, 37, 76, .82),
+        var(--shadow),
+        0 0 24px rgba(71, 180, 255, .3);
+    }
+    .character-actor-card.unlocked img {
+      aspect-ratio: 16 / 11;
+      min-height: 120px;
+      filter: saturate(1.18) contrast(1.1) brightness(.98);
+    }
+    .character-actor-card.unlocked h3 {
+      font-size: .95rem;
+      font-weight: 600;
+      color: #d9e9ff;
+    }
+    .character-actor-card.unlocked p {
+      color: #9fbee3;
     }
     .character-actor-card.locked {
-      filter: grayscale(.65);
-      opacity: .82;
       border-style: dashed;
+      border-color: rgba(163, 185, 230, .3);
+      background:
+        radial-gradient(circle at 22% 14%, rgba(139, 169, 227, .14), transparent 58%),
+        linear-gradient(165deg, rgba(20, 32, 58, .88), rgba(12, 20, 37, .96));
+      filter: grayscale(.32);
     }
     .character-actor-card.locked img {
-      filter: blur(1px) brightness(.55);
+      filter: grayscale(.58) blur(1.8px) brightness(.38) saturate(.35);
+      opacity: .72;
+      transform: scale(1.02);
+    }
+    .character-actor-card.locked h3 {
+      font-size: 1.08rem;
+      font-weight: 760;
+      letter-spacing: .02em;
+      color: #ebf3ff;
+      text-shadow: 0 1px 4px rgba(6, 14, 32, .7);
+    }
+    .character-actor-card.locked p {
+      color: #ffc2c2;
+      font-weight: 600;
+      font-size: .84rem;
+    }
+    .character-actor-card .add-greeting-btn {
+      width: 26px;
+      height: 26px;
+      min-height: 26px;
+      border-radius: 8px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      font-size: 1rem;
+      line-height: 1;
+      font-weight: 700;
+      border-color: rgba(133, 209, 255, .45);
+      background: linear-gradient(160deg, rgba(35, 85, 136, .48), rgba(15, 42, 78, .55));
+      color: #d8eeff;
+      box-shadow: inset 0 1px 0 rgba(214, 240, 255, .24), 0 3px 8px rgba(4, 11, 27, .45);
+    }
+    .character-actor-card .add-greeting-btn:hover {
+      border-color: rgba(167, 235, 255, .8);
+      background: linear-gradient(160deg, rgba(50, 116, 184, .62), rgba(19, 58, 105, .66));
+      box-shadow: inset 0 1px 0 rgba(230, 246, 255, .36), 0 4px 12px rgba(35, 102, 165, .35);
+    }
+    .character-actor-card .add-greeting-btn:focus-visible {
+      outline: 2px solid rgba(160, 229, 255, .84);
+      outline-offset: 1px;
     }
     .mock-row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     .mock-box {
@@ -5042,7 +5147,7 @@
                     <article class="character-actor-card locked" aria-disabled="true">
                       <img src="${createPlaceholderCover(item.actorName)}" alt="Actor bloqueado: ${item.actorName}" loading="lazy">
                       <div class="meta">
-                        <h3>${item.actorName} <button type="button" class="neon-btn icon-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar video para ${item.actorName}">+</button></h3>
+                        <h3>${item.actorName} <button type="button" class="neon-btn add-greeting-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar video para ${item.actorName}">+</button></h3>
                         <p style="color: #ffb6b6;">🔒 Falta Saludo</p>
                       </div>
                     </article>
@@ -5051,7 +5156,7 @@
                     <article class="character-actor-card unlocked">
                       <img src="${getVideoThumbnail(item.video)}" alt="Miniatura de ${item.actorName} como ${focusedCharacter}" loading="lazy">
                       <div class="meta">
-                        <h3>${item.actorName} <button type="button" class="neon-btn icon-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar otro video para ${item.actorName}">+</button></h3>
+                        <h3>${item.actorName} <button type="button" class="neon-btn add-greeting-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar otro video para ${item.actorName}">+</button></h3>
                         <p><button type="button" class="neon-btn" data-open-video="${item.video.id}">▶ Ver video</button></p>
                       </div>
                     </article>
