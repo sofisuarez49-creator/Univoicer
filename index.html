@@ -3764,6 +3764,34 @@
         const actor = (video.actor_de_doblaje || '').toLowerCase();
         return personaje.includes(state.search.personaje.toLowerCase()) && actor.includes(state.search.actor.toLowerCase());
       });
+      const groupedCharacters = [];
+      filtered.reduce((acc, video) => {
+        const characterName = String(video.personaje || 'Sin personaje').trim() || 'Sin personaje';
+        const normalizedCharacter = normalizeName(characterName);
+        if (!acc[normalizedCharacter]) {
+          acc[normalizedCharacter] = {
+            characterName,
+            videos: [],
+            coverVideo: null,
+            actors: new Set()
+          };
+          groupedCharacters.push(acc[normalizedCharacter]);
+        }
+        const record = acc[normalizedCharacter];
+        record.videos.push(video);
+        const actorName = String(video.actor_de_doblaje || '').trim();
+        if (actorName && normalizeName(actorName) !== normalizeName('Sin actor')) record.actors.add(actorName);
+        if (!record.coverVideo || (!hasGreetingVideo(record.coverVideo) && hasGreetingVideo(video))) {
+          record.coverVideo = video;
+        }
+        return acc;
+      }, {});
+      const groupedCharacterCards = groupedCharacters
+        .map((record) => ({
+          ...record,
+          actorsList: [...record.actors].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+        }))
+        .sort((a, b) => a.characterName.localeCompare(b.characterName, 'es', { sensitivity: 'base' }));
       const universeNode = state.universeNodes.find(node => normalizeUniverseName(node.name) === selectedUniverseKey);
       const headerCover = getSafeUniverseCover(state.universe, universeNode?.cover || getUniverseCover(videos));
       const editFeedbackText = state.editUniverseFeedback?.text || '';
@@ -3899,14 +3927,14 @@
         <div class="universe-gallery-layout universe-view-animated">
           <section class="hud-panel">
             <div class="video-grid">
-              ${filtered.map(v => `
-                <article class="collection-card" data-open-detail="${v.id}" style="--float-delay:-${(Math.random() * 2.8).toFixed(2)}s;">
+              ${groupedCharacterCards.map(item => `
+                <article class="character-gallery-card collection-card" data-open-character="${item.characterName}" style="--float-delay:-${(Math.random() * 2.8).toFixed(2)}s;">
                   <div class="card-media">
-                    <img class="video-thumb" src="${v.thumbnail || getUniverseCover([v])}" alt="${v.titulo || 'Miniatura del video'}" loading="lazy">
+                    <img class="video-thumb" src="${item.coverVideo?.thumbnail || getUniverseCover(item.videos)}" alt="Portada de ${item.characterName}" loading="lazy">
                   </div>
                   <div class="card-footer">
-                    <p class="meta"><small>Personaje:</small>${v.personaje || 'Pendiente'}</p>
-                    <p class="meta"><small>Actor:</small>${v.actor_de_doblaje || 'Pendiente'}</p>
+                    <p class="meta"><small>Personaje:</small>${item.characterName || 'Pendiente'}</p>
+                    <p class="meta"><small>Actores:</small>${item.actorsList.join(', ') || 'Sin actor'}</p>
                   </div>
                 </article>
               `).join('') || '<p class="muted">No hay resultados con estos filtros.</p>'}
@@ -4177,13 +4205,6 @@
       document.getElementById('searchActor').oninput = (e) => { state.search.actor = e.target.value; renderUniverseView(); };
       document.getElementById('filterRarity').onchange = (e) => { state.filters.rareza = e.target.value; renderUniverseView(); };
 
-      viewUniverse.querySelectorAll('[data-open-detail]').forEach(card => {
-        card.addEventListener('click', () => {
-          const videoId = card.dataset.openDetail;
-          state.selectedVideoId = videoId;
-          openVideoDetail(videoId);
-        });
-      });
       viewUniverse.querySelectorAll('[data-open-character]').forEach((btn) => {
         btn.addEventListener('click', (event) => {
           event.stopPropagation();
