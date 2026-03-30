@@ -347,6 +347,15 @@
       border-color: var(--focus);
       box-shadow: var(--focus-glow), var(--control-shadow);
     }
+    select option {
+      background: #0a152b;
+      color: #dff3ff;
+    }
+    select:open,
+    select:focus option:checked {
+      background: #0f1e3d;
+      color: #e7fdff;
+    }
     button.active {
       border-color: var(--accent);
       box-shadow: var(--accent-glow), var(--control-shadow);
@@ -4693,11 +4702,20 @@
     }
 
     function getUniverseOptionsForCharacterForm() {
-      const source = [...new Set([
-        ...Object.keys(groupByUniverse()),
-        ...state.universeNodes.map(node => node.name)
-      ])].map(name => String(name || '').trim()).filter(Boolean);
-      return source.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      const universeByNormalizedName = new Map();
+      const unassignedKey = normalizeUniverseName(SPECIAL_UNASSIGNED_UNIVERSE);
+      const registerUniverse = (rawName, { preferExisting = false } = {}) => {
+        const canonicalName = String(rawName || '').trim();
+        const normalizedName = normalizeUniverseName(canonicalName);
+        if (!normalizedName || normalizedName === unassignedKey) return;
+        if (!universeByNormalizedName.has(normalizedName) || preferExisting) {
+          universeByNormalizedName.set(normalizedName, canonicalName);
+        }
+      };
+      state.universeNodes.forEach((node) => registerUniverse(node.name, { preferExisting: true }));
+      Object.values(groupByUniverse()).forEach((universe) => registerUniverse(universe.name));
+      return [...universeByNormalizedName.values()]
+        .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     }
 
     function addDraftActorFromInput(rawName) {
