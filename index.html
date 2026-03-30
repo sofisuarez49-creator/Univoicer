@@ -1174,6 +1174,41 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       align-items: start;
     }
+    .actor-detail-header {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+      margin-bottom: 6px;
+    }
+    .actor-detail-title {
+      margin: 6px 0 2px;
+      font-size: clamp(1.9rem, 4.8vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: .03em;
+      line-height: 1.05;
+      text-align: center;
+      color: #f4fbff;
+      text-shadow:
+        0 0 8px rgba(120, 236, 255, .62),
+        0 0 18px rgba(141, 116, 255, .5),
+        0 0 30px rgba(255, 91, 214, .36);
+    }
+    .actor-detail-actions {
+      margin-top: 0;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      row-gap: 10px;
+    }
+    @media (max-width: 720px) {
+      .actor-detail-actions {
+        justify-content: stretch;
+      }
+      .actor-detail-actions .neon-btn {
+        flex: 1 1 100%;
+      }
+    }
     .actor-character-list {
       list-style: none;
       margin: 0;
@@ -4842,15 +4877,15 @@
           </div>
           ${actor && state.actorDetailsExpanded ? `
             <article class="mock-box actor-detail-grid" style="margin-top: 16px;">
-              <div style="grid-column: 1 / -1;">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0;">${actor}</h3>
-                <div class="actions">
+              <div>
+                <div class="actor-detail-header">
+                  <h3 class="actor-detail-title">${actor}</h3>
+                  <div class="actions actor-detail-actions">
                   <button id="editActorBtn" class="neon-btn">✏️ Editar Actor</button>
                   <button id="deleteActorBtn" class="neon-btn" style="color: #ffb6b6; border-color: #ffb6b6;">🗑️ Eliminar</button>
+                  </div>
                 </div>
-              </div>
-              <p class="muted">Personajes: ${actorCharacters.length} · Videos: ${actorVideos.length}</p>
+                <p class="muted">Personajes: ${actorCharacters.length} · Videos: ${actorVideos.length}</p>
                 <div class="actions actor-blocked-actions">
                   <input id="blockedCharacterInput" type="text" placeholder="Agregar personaje bloqueado">
                   <button id="addBlockedCharacter" class="neon-btn">Agregar bloqueado</button>
