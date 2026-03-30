@@ -1797,19 +1797,68 @@
       line-height: 1.15;
     }
     .character-gallery-card[data-locked="true"] {
+      --locked-glow: rgba(166, 190, 255, .22);
       background:
-        linear-gradient(170deg, rgba(76, 84, 102, .9), rgba(34, 37, 46, .95));
+        linear-gradient(160deg, rgba(82, 89, 111, .9), rgba(29, 33, 46, .96));
+      border-color: rgba(168, 186, 225, .45);
+    }
+    .character-gallery-card[data-locked="true"]::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background:
+        radial-gradient(140% 95% at 12% 18%, rgba(177, 195, 255, .24), transparent 56%),
+        radial-gradient(120% 110% at 88% 12%, rgba(102, 132, 255, .2), transparent 58%),
+        linear-gradient(130deg, rgba(11, 17, 35, .7), rgba(31, 38, 58, .2) 44%, rgba(7, 12, 28, .76)),
+        repeating-linear-gradient(180deg, rgba(217, 235, 255, .08) 0 1px, rgba(9, 14, 30, 0) 1px 3px);
+      background-size: 150% 150%, 150% 150%, 100% 100%, 100% 6px;
+      mix-blend-mode: screen;
+      opacity: .9;
+      animation: lockedNebulaShift 14s ease-in-out infinite alternate;
     }
     .character-gallery-card[data-locked="true"] img {
-      filter: grayscale(1) brightness(.15) contrast(1.25);
-      opacity: .94;
+      filter: grayscale(1) brightness(.08) contrast(1.9) saturate(.7) drop-shadow(0 0 10px var(--locked-glow));
+      opacity: .9;
       border-bottom-color: rgba(171, 187, 210, .24);
+    }
+    .character-gallery-card[data-locked="true"] .meta::before {
+      content: '🔒';
+      position: absolute;
+      top: -168px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: .72rem;
+      background: rgba(12, 18, 34, .72);
+      border: 1px solid rgba(189, 211, 255, .45);
+      box-shadow: 0 0 12px rgba(156, 184, 255, .22);
+      z-index: 2;
+      backdrop-filter: blur(2px);
     }
     .character-gallery-card[data-locked="true"] .meta h3 {
       color: #eef4ff;
     }
     .character-gallery-card[data-locked="true"] .meta p {
       color: #c5d0e0;
+    }
+    @keyframes lockedNebulaShift {
+      0% {
+        background-position: 0% 0%, 100% 0%, 0 0, 0 0;
+        opacity: .78;
+      }
+      50% {
+        background-position: 35% 45%, 60% 30%, 0 0, 0 3px;
+        opacity: .94;
+      }
+      100% {
+        background-position: 70% 95%, 20% 75%, 0 0, 0 6px;
+        opacity: .82;
+      }
     }
     @keyframes cardFloat {
       0%, 100% { transform: translateY(0); }
