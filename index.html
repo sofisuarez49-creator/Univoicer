@@ -3330,12 +3330,13 @@
 
     function getCharacterProfileData(characterId) {
       const characterName = getCharacterNameById(characterId);
-      const videos = VIDEOS.filter(v => getCharacterIdByName(v.personaje || '') === characterId);
-      const actors = [...new Set(videos.map(v => String(v.actor_de_doblaje || 'Sin actor').trim()).filter(Boolean))];
-      const universes = [...new Set(videos.flatMap(v => getVideoUniverses(v).map(name => String(name || '').trim())).filter(Boolean))];
+      const characterEntries = VIDEOS.filter(v => getCharacterIdByName(v.personaje || '') === characterId);
+      const videos = characterEntries.filter(v => hasGreetingVideo(v));
+      const actors = [...new Set(characterEntries.map(v => String(v.actor_de_doblaje || 'Sin actor').trim()).filter(Boolean))];
+      const universes = [...new Set(characterEntries.flatMap(v => getVideoUniverses(v).map(name => String(name || '').trim())).filter(Boolean))];
       const blockedActors = Object.entries(state.blockedCharactersByActor)
         .filter(([actorName, blocked]) => blocked.some(item => normalizeName(item) === normalizeName(characterName))
-          && !videos.some(v => normalizeName(v.actor_de_doblaje) === normalizeName(actorName) && hasGreetingVideo(v)))
+          && !characterEntries.some(v => normalizeName(v.actor_de_doblaje) === normalizeName(actorName) && hasGreetingVideo(v)))
         .map(([actorName]) => actorName);
       const status = blockedActors.length ? 'Bloqueado' : 'Desbloqueado';
       return { characterName, videos, actors, universes, blockedActors, status };
@@ -4106,8 +4107,9 @@
         state.actorDetailsExpanded = false;
       }
       const actor = state.actorFocus || null;
-      const actorVideos = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
-      const actorCharacters = [...new Set(actorVideos.map(v => v.personaje || 'Sin personaje'))];
+      const actorEntries = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
+      const actorVideos = actorEntries.filter(v => hasGreetingVideo(v));
+      const actorCharacters = [...new Set(actorEntries.map(v => v.personaje || 'Sin personaje'))];
       const blockedCharacters = state.blockedCharactersByActor[actor] || [];
       const blockedOnly = blockedCharacters.filter(name => !actorCharacters.includes(name));
       const actorCharacterCards = [
@@ -4146,8 +4148,9 @@
 
           <div class="actor-gallery" style="margin-top: 20px;">
             ${actors.map((name) => {
-              const videos = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === name);
-              const characters = [...new Set(videos.map(v => v.personaje || 'Sin personaje'))];
+              const entries = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === name);
+              const videos = entries.filter(v => hasGreetingVideo(v));
+              const characters = [...new Set(entries.map(v => v.personaje || 'Sin personaje'))];
               return `
                 <button type="button" class="actor-card ${name === actor ? 'active' : ''}" data-actor-card="${name}">
                   <h3 class="actor-card-title">${name}</h3>
@@ -4228,17 +4231,7 @@
         }
 
         chars.forEach(char => {
-            VIDEOS.push({
-                id: `video-${Date.now()}-${Math.random()}`,
-                titulo: `Registro bloqueado de ${char}`,
-                universo: ['Sin universo'],
-                personaje: char,
-                actor_de_doblaje: actorName,
-                url_youtube: '',
-                rareza: 'Común',
-                thumbnail: createPlaceholderCover(char)
-            });
-            blockCharacterForActor(actorName, char);
+          blockCharacterForActor(actorName, char);
         });
 
         saveVideos();
@@ -4313,17 +4306,6 @@
           input.value = '';
           return;
         }
-
-        VIDEOS.push({
-          id: `video-${Date.now()}`,
-          titulo: `Registro bloqueado de ${characterName}`,
-          universo: ['Sin universo'],
-          personaje: characterName,
-          actor_de_doblaje: actor,
-          url_youtube: '',
-          rareza: 'Común',
-          thumbnail: createPlaceholderCover(characterName)
-        });
 
         const current = state.blockedCharactersByActor[actor] || [];
         state.blockedCharactersByActor[actor] = [...new Set([...current, characterName])];
