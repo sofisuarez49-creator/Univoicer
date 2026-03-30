@@ -4997,7 +4997,6 @@
         const charVideos = VIDEOS.filter(v => normalizeName(v.personaje || '') === normalizedCharacter);
         const rareza = charVideos[0]?.rareza || 'Común';
         const universos = [...new Set(charVideos.flatMap(v => getVideoUniverses(v)))].filter(Boolean);
-        const realVideos = charVideos.filter(v => hasGreetingVideo(v));
         
         const { unlockedByActor, blockedActors } = getCharacterActorsForIndice(focusedCharacter);
         const unlockedActors = [...unlockedByActor.entries()]
@@ -5059,24 +5058,6 @@
               </section>
             </article>
 
-            <article class="profile-section">
-              <h4 style="font-size: 1.2rem; margin-bottom: 14px;">🎬 Videos de Saludos (${realVideos.length})</h4>
-              ${realVideos.length ? `
-                <div class="video-grid">
-                  ${realVideos.map(v => `
-                    <article class="collection-card" data-open-video-modal="${v.id}" style="cursor: pointer;">
-                      <div class="card-media">
-                        <img class="video-thumb" src="${getVideoThumbnail(v)}" alt="${v.titulo}">
-                      </div>
-                      <div class="card-footer">
-                        <p class="meta"><small>Actor:</small>${v.actor_de_doblaje}</p>
-                        <p class="meta"><small>Universo:</small>${(v.universo || []).join(', ')}</p>
-                      </div>
-                    </article>
-                  `).join('')}
-                </div>
-              ` : '<p class="muted">Aún no se han cargado videos reales para este personaje.</p>'}
-            </article>
           </section>
         `;
 
