@@ -1213,6 +1213,41 @@
       align-items: start;
       padding: 4px;
     }
+    .actor-detail-header {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+      margin-bottom: 6px;
+    }
+    .actor-detail-title {
+      margin: 6px 0 2px;
+      font-size: clamp(1.9rem, 4.8vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: .03em;
+      line-height: 1.05;
+      text-align: center;
+      color: #f4fbff;
+      text-shadow:
+        0 0 8px rgba(120, 236, 255, .62),
+        0 0 18px rgba(141, 116, 255, .5),
+        0 0 30px rgba(255, 91, 214, .36);
+    }
+    .actor-detail-actions {
+      margin-top: 0;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      row-gap: 10px;
+    }
+    @media (max-width: 720px) {
+      .actor-detail-actions {
+        justify-content: stretch;
+      }
+      .actor-detail-actions .neon-btn {
+        flex: 1 1 100%;
+      }
+    }
     .actor-character-list {
       list-style: none;
       margin: 0;
@@ -1223,21 +1258,7 @@
     }
     .actor-character-item {
       width: 100%;
-      padding: 10px;
-      border-radius: 16px;
-      border: 1px solid rgba(131, 200, 255, .32);
-      background:
-        radial-gradient(circle at 9% 12%, rgba(150, 232, 255, .12), transparent 30%),
-        rgba(13, 25, 49, .78);
-      display: grid;
-      gap: 8px;
-      box-shadow: 0 8px 14px rgba(5, 12, 30, .32);
-      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-    }
-    .actor-character-item:hover {
-      transform: translateY(-2px);
-      border-color: rgba(152, 225, 255, .52);
-      box-shadow: 0 12px 18px rgba(5, 13, 32, .45), 0 0 16px rgba(105, 199, 255, .2);
+      list-style: none;
     }
     .actor-blocked-actions {
       margin: 0 0 10px;
@@ -1246,9 +1267,37 @@
       max-width: 250px;
       flex: 1 1 200px;
     }
-    .actor-character-item.locked {
+    .actor-character-item .actor-character-card {
+      height: 100%;
+      border-radius: 14px;
+    }
+    .actor-character-item .actor-character-card.locked {
       border-style: dashed;
-      opacity: .8;
+      opacity: .82;
+      filter: saturate(.8);
+      box-shadow: 0 8px 18px rgba(4, 12, 26, .5), inset 0 1px 0 rgba(210, 228, 255, .08);
+    }
+    .actor-character-item .actor-character-card.rare-comun {
+      --rarity-color: var(--rare-comun);
+    }
+    .actor-character-item .actor-character-card.rare-raro {
+      --rarity-color: var(--rare-raro);
+    }
+    .actor-character-item .actor-character-card.rare-epico {
+      --rarity-color: var(--rare-epico);
+    }
+    .actor-character-item .actor-character-card.rare-legendario {
+      --rarity-color: var(--rare-legendario);
+    }
+    .actor-character-item .actor-character-card:not(.locked).rare-comun,
+    .actor-character-item .actor-character-card:not(.locked).rare-raro,
+    .actor-character-item .actor-character-card:not(.locked).rare-epico,
+    .actor-character-item .actor-character-card:not(.locked).rare-legendario {
+      border-color: color-mix(in srgb, var(--rarity-color, rgba(130, 186, 255, .7)) 72%, white);
+      box-shadow:
+        0 10px 24px rgba(3, 10, 24, .58),
+        0 0 0 1px color-mix(in srgb, var(--rarity-color, rgba(130, 186, 255, .7)) 32%, transparent),
+        0 0 24px color-mix(in srgb, var(--rarity-color, rgba(130, 186, 255, .7)) 24%, transparent);
     }
     .actor-panel-title,
     .actor-detail-title {
@@ -1298,12 +1347,13 @@
       font-weight: 700;
       text-decoration: underline;
       text-underline-offset: 3px;
+      padding: 0;
     }
     .actor-character-thumb-empty {
       width: 100%;
-      aspect-ratio: 9 / 16;
+      aspect-ratio: 3 / 4;
       border: 1px dashed rgba(111, 180, 255, .35);
-      border-radius: 12px;
+      border-radius: 0;
       display: grid;
       place-items: center;
       color: #9fb5cb;
@@ -1311,6 +1361,14 @@
       text-align: center;
       padding: 8px;
       background: rgba(7, 14, 28, .55);
+    }
+    .actor-character-status {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
     }
     .actor-locked-note {
       margin: 0;
@@ -2437,6 +2495,30 @@
 
     function rarityClass(rareza) {
       return `rare-${rareza.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
+    }
+
+    function rarityRank(rareza) {
+      const normalized = String(rareza || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      const order = { comun: 0, raro: 1, epico: 2, legendario: 3 };
+      return Object.prototype.hasOwnProperty.call(order, normalized) ? order[normalized] : -1;
+    }
+
+    function highestRarityForActorCharacter(actorName, characterName) {
+      const entries = VIDEOS.filter((video) =>
+        (video.actor_de_doblaje || 'Sin actor') === actorName &&
+        (video.personaje || 'Sin personaje') === characterName
+      );
+      if (!entries.length) return 'Bloqueado';
+      const labels = ['Común', 'Raro', 'Épico', 'Legendario'];
+      const best = entries.reduce((max, video) => {
+        const rank = rarityRank(rarezasPermitidas(video.rareza || 'Común'));
+        return rank > max ? rank : max;
+      }, -1);
+      return best >= 0 ? labels[best] : 'Común';
     }
 
     function rarityColorValue(rareza) {
@@ -4916,15 +4998,20 @@
       const actorCharacterCards = [
         ...actorCharacters.map((characterName) => {
           const relatedVideo = actorVideos.find(item => (item.personaje || 'Sin personaje') === characterName && hasGreetingVideo(item));
+          const rarity = highestRarityForActorCharacter(actor, characterName);
           return {
             characterName,
             unlocked: Boolean(relatedVideo),
+            rarity,
+            rarityClassName: rarityClass(rarity),
             video: relatedVideo || null
           };
         }),
         ...blockedOnly.map((characterName) => ({
           characterName,
           unlocked: false,
+          rarity: 'Bloqueado',
+          rarityClassName: 'rare-bloqueado',
           video: null
         }))
       ];
@@ -4963,31 +5050,37 @@
           </div>
           ${actor && state.actorDetailsExpanded ? `
             <article class="mock-box actor-detail-grid" style="margin-top: 16px;">
-              <div style="grid-column: 1 / -1;">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <h3 class="actor-detail-title" style="margin: 0;">${actor}</h3>
-                <div class="actions">
+              <div>
+                <div class="actor-detail-header">
+                  <h3 class="actor-detail-title">${actor}</h3>
+                  <div class="actions actor-detail-actions">
                   <button id="editActorBtn" class="neon-btn">✏️ Editar Actor</button>
                   <button id="deleteActorBtn" class="neon-btn" style="color: #ffb6b6; border-color: #ffb6b6;">🗑️ Eliminar</button>
+                  </div>
                 </div>
-              </div>
-              <p class="muted">Personajes: ${actorCharacters.length} · Videos: ${actorVideos.length}</p>
+                <p class="muted">Personajes: ${actorCharacters.length} · Videos: ${actorVideos.length}</p>
                 <div class="actions actor-blocked-actions">
                   <input id="blockedCharacterInput" type="text" placeholder="Agregar personaje bloqueado">
                   <button id="addBlockedCharacter" class="neon-btn">Agregar bloqueado</button>
                 </div>
                 <ul class="actor-character-list">
                   ${actorCharacterCards.map((item) => `
-                    <li class="actor-character-item ${item.unlocked ? 'unlocked' : 'locked'}">
-                      ${item.unlocked && item.video ? `
-                        <button type="button" class="actor-character-video" data-open-video="${item.video.id}">
-                          <img src="${getVideoThumbnail(item.video)}" alt="Miniatura de ${item.characterName}">
-                          <span>Ver saludo</span>
-                        </button>
-                      ` : '<div class="actor-character-thumb-empty">🔒 Sin saludo disponible</div>'}
-                      <button type="button" class="character-link actor-character-link" data-open-character="${item.characterName}">${item.characterName}</button>
+                    <li class="actor-character-item">
+                      <article class="collection-card collection-character-card actor-character-card ${item.unlocked ? 'unlocked' : 'locked'} ${item.rarityClassName}" style="--rarity-color:${rarityColorValue(item.rarity)};">
+                        ${item.unlocked && item.video ? `
+                          <button type="button" class="actor-character-video card-media" data-open-video="${item.video.id}">
+                            <img class="video-thumb" src="${getVideoThumbnail(item.video)}" alt="Miniatura de ${item.characterName}">
+                            <p class="card-title">▶ Ver saludo</p>
+                          </button>
+                        ` : '<div class="actor-character-thumb-empty">🔒 Sin saludo disponible</div>'}
+                        <div class="card-footer">
+                          <button type="button" class="character-link actor-character-link meta character-name" data-open-character="${item.characterName}">${item.characterName}</button>
+                          <span class="badge actor-character-status ${item.rarityClassName}">${item.rarity}</span>
+                          ${item.unlocked ? '' : '<span class="badge actor-character-status rare-bloqueado">Bloqueado</span>'}
+                        </div>
+                      </article>
                     </li>
-                  `).join('') || '<li class="actor-character-item locked">Sin personajes registrados.</li>'}
+                  `).join('') || '<li class="actor-character-item"><p class="muted">Sin personajes registrados.</p></li>'}
                 </ul>
               </div>
             </article>
