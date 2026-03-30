@@ -2582,6 +2582,88 @@
       });
     }
 
+    function getGroupedUniverseCharacters(universeVideos) {
+      const rarityOrder = { 'Común': 0, 'Raro': 1, 'Épico': 2, 'Legendario': 3 };
+      const grouped = new Map();
+
+      (Array.isArray(universeVideos) ? universeVideos : []).forEach((video) => {
+        const rawCharacter = String(video?.personaje || '').trim() || 'Sin personaje';
+        const characterKey = normalizeName(rawCharacter);
+        const rawActor = String(video?.actor_de_doblaje || '').trim() || 'Sin actor';
+        const actorKey = normalizeName(rawActor);
+        if (!grouped.has(characterKey)) {
+          grouped.set(characterKey, {
+            characterName: rawCharacter,
+            actorsMap: new Map(),
+            maxRarityValue: 0,
+            maxRarityLabel: 'Común'
+          });
+        }
+        const characterRecord = grouped.get(characterKey);
+        if (characterRecord.characterName === 'Sin personaje' && rawCharacter !== 'Sin personaje') {
+          characterRecord.characterName = rawCharacter;
+        }
+        if (!characterRecord.actorsMap.has(actorKey)) {
+          characterRecord.actorsMap.set(actorKey, {
+            actorName: rawActor,
+            representativeVideo: null,
+            isBlocked: false
+          });
+        }
+        const actorRecord = characterRecord.actorsMap.get(actorKey);
+        if (actorRecord.actorName === 'Sin actor' && rawActor !== 'Sin actor') {
+          actorRecord.actorName = rawActor;
+        }
+        if (hasGreetingVideo(video) || !actorRecord.representativeVideo) {
+          actorRecord.representativeVideo = video;
+        }
+        const rarityValue = rarityOrder[video?.rareza] ?? 0;
+        if (rarityValue >= characterRecord.maxRarityValue) {
+          characterRecord.maxRarityValue = rarityValue;
+          characterRecord.maxRarityLabel = Object.keys(rarityOrder).find(key => rarityOrder[key] === rarityValue) || 'Común';
+        }
+      });
+
+      Object.entries(state.blockedCharactersByActor || {}).forEach(([actorName, blockedCharacters]) => {
+        const normalizedActor = normalizeName(actorName);
+        (Array.isArray(blockedCharacters) ? blockedCharacters : []).forEach((blockedCharacterName) => {
+          const safeCharacter = String(blockedCharacterName || '').trim();
+          if (!safeCharacter) return;
+          const characterKey = normalizeName(safeCharacter);
+          if (!grouped.has(characterKey)) {
+            grouped.set(characterKey, {
+              characterName: safeCharacter,
+              actorsMap: new Map(),
+              maxRarityValue: 0,
+              maxRarityLabel: 'Común'
+            });
+          }
+          const characterRecord = grouped.get(characterKey);
+          if (!characterRecord.actorsMap.has(normalizedActor)) {
+            characterRecord.actorsMap.set(normalizedActor, {
+              actorName: actorName || 'Sin actor',
+              representativeVideo: null,
+              isBlocked: true
+            });
+          } else {
+            characterRecord.actorsMap.get(normalizedActor).isBlocked = true;
+          }
+        });
+      });
+
+      return [...grouped.values()]
+        .map((item) => {
+          const actors = [...item.actorsMap.values()]
+            .sort((a, b) => a.actorName.localeCompare(b.actorName, 'es', { sensitivity: 'base' }));
+          return {
+            characterName: item.characterName,
+            actors,
+            rarity: item.maxRarityLabel
+          };
+        })
+        .sort((a, b) => a.characterName.localeCompare(b.characterName, 'es', { sensitivity: 'base' }));
+    }
+
     function getCharactersIndex(videos) {
       const grouped = videos.reduce((acc, v) => {
         acc[v.personaje] = acc[v.personaje] || [];
@@ -3075,34 +3157,27 @@
       const selectedUniverseKey = normalizeUniverseName(state.universe || '');
       const universeData = universeMap[selectedUniverseKey] || { totalCharacters: 0, unlockedCharacters: 0, completion: 0, state: 'incomplete' };
       const rarezas = ['Común', 'Raro', 'Épico', 'Legendario'];
-      const universeCharacters = [...new Set(videos.map(v => String(v.personaje || '').trim()).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      const groupedCharacters = getGroupedUniverseCharacters(videos);
+      const universeCharacters = groupedCharacters.map(item => item.characterName);
       const defaultCharacterForVideo = universeCharacters[0] || '';
-      const getActorsForUniverseCharacter = (characterName) => {
-        if (!characterName) return [];
-        const normalizedCharacter = normalizeName(characterName);
-        const actorsInVideos = videos
-          .filter(v => normalizeName(v.personaje || '') === normalizedCharacter)
-          .map(v => String(v.actor_de_doblaje || '').trim())
-          .filter(Boolean);
-        const blockedActors = Object.entries(state.blockedCharactersByActor || {})
-          .filter(([, list]) => Array.isArray(list) && list.some(item => normalizeName(item) === normalizedCharacter))
-          .map(([actorName]) => String(actorName || '').trim())
-          .filter(Boolean);
-        const merged = [...new Set([...actorsInVideos, ...blockedActors])]
-          .filter(name => normalizeName(name) !== normalizeName('Sin actor'))
-          .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-        return merged.length ? merged : ['Sin actor'];
-      };
-      const characterActorsMap = universeCharacters.reduce((acc, characterName) => {
-        acc[characterName] = getActorsForUniverseCharacter(characterName);
+      const characterActorsMap = groupedCharacters.reduce((acc, characterData) => {
+        const actorNames = characterData.actors
+          .map(actorItem => actorItem.actorName)
+          .filter(name => normalizeName(name) !== normalizeName('Sin actor'));
+        acc[characterData.characterName] = actorNames.length ? actorNames : ['Sin actor'];
         return acc;
       }, {});
-      const defaultActorsForVideo = getActorsForUniverseCharacter(defaultCharacterForVideo);
-      const filtered = getFilteredUniverseVideos().filter((video) => {
-        const personaje = (video.personaje || '').toLowerCase();
-        const actor = (video.actor_de_doblaje || '').toLowerCase();
-        return personaje.includes(state.search.personaje.toLowerCase()) && actor.includes(state.search.actor.toLowerCase());
+      const defaultActorsForVideo = characterActorsMap[defaultCharacterForVideo] || ['Sin actor'];
+      const filteredCharacters = groupedCharacters.filter((characterData) => {
+        const m1 = state.filters.personaje === 'todos'
+          || normalizeName(characterData.characterName) === normalizeName(state.filters.personaje);
+        const m2 = state.filters.actor === 'todos'
+          || characterData.actors.some(actorData => normalizeName(actorData.actorName) === normalizeName(state.filters.actor));
+        const m3 = state.filters.rareza === 'todos' || characterData.rarity === state.filters.rareza;
+        const matchesCharacterSearch = normalizeName(characterData.characterName).includes(normalizeName(state.search.personaje || ''));
+        const matchesActorSearch = !normalizeName(state.search.actor || '')
+          || characterData.actors.some(actorData => normalizeName(actorData.actorName).includes(normalizeName(state.search.actor || '')));
+        return m1 && m2 && m3 && matchesCharacterSearch && matchesActorSearch;
       });
       const universeNode = state.universeNodes.find(node => normalizeUniverseName(node.name) === selectedUniverseKey);
       const headerCover = getSafeUniverseCover(state.universe, universeNode?.cover || getUniverseCover(videos));
@@ -3194,17 +3269,24 @@
         <div class="universe-gallery-layout universe-view-animated">
           <section class="hud-panel">
             <div class="video-grid">
-              ${filtered.map(v => `
-                <article class="collection-card" data-open-detail="${v.id}" style="--float-delay:-${(Math.random() * 2.8).toFixed(2)}s;">
+              ${filteredCharacters.map(characterData => {
+                const representative = characterData.actors.find(actorData => actorData.representativeVideo)?.representativeVideo;
+                const actorLabel = characterData.actors
+                  .map(actorData => `${actorData.actorName}${actorData.isBlocked ? ' (bloqueado)' : ''}`)
+                  .join(', ');
+                return `
+                <article class="collection-card" data-open-detail="${escapeHtml(characterData.characterName)}" style="--float-delay:-${(Math.random() * 2.8).toFixed(2)}s;">
                   <div class="card-media">
-                    <img class="video-thumb" src="${v.thumbnail || getUniverseCover([v])}" alt="${v.titulo || 'Miniatura del video'}" loading="lazy">
+                    <img class="video-thumb" src="${representative?.thumbnail || getUniverseCover(representative ? [representative] : videos)}" alt="Miniatura de ${escapeHtml(characterData.characterName)}" loading="lazy">
                   </div>
                   <div class="card-footer">
-                    <p class="meta"><small>Personaje:</small>${v.personaje || 'Pendiente'}</p>
-                    <p class="meta"><small>Actor:</small>${v.actor_de_doblaje || 'Pendiente'}</p>
+                    <p class="meta"><small>Personaje:</small>${escapeHtml(characterData.characterName)}</p>
+                    <p class="meta"><small>Actores:</small>${escapeHtml(actorLabel || 'Pendiente')}</p>
+                    <p class="meta"><small>Rareza máx.:</small>${characterData.rarity}</p>
                   </div>
                 </article>
-              `).join('') || '<p class="muted">No hay resultados con estos filtros.</p>'}
+              `;
+              }).join('') || '<p class="muted">No hay resultados con estos filtros.</p>'}
             </div>
           </section>
         </div>
@@ -3224,6 +3306,7 @@
               <option value="todos">Todas</option>
               ${rarezas.map(r => `<option value="${r}" ${state.filters.rareza === r ? 'selected' : ''}>${r}</option>`).join('')}
             </select>
+            <small class="muted">Regla aplicada: la rareza usa el valor más alto encontrado entre las versiones del personaje.</small>
           </label>
           <button id="clearFilters" class="neon-btn neon-action">Limpiar filtros</button>
         </aside>
@@ -3452,9 +3535,9 @@
 
       viewUniverse.querySelectorAll('[data-open-detail]').forEach(card => {
         card.addEventListener('click', () => {
-          const videoId = card.dataset.openDetail;
-          state.selectedVideoId = videoId;
-          openVideoDetail(videoId);
+          const characterName = card.dataset.openDetail;
+          if (!characterName) return;
+          openCharacterProfile(characterName);
         });
       });
       viewUniverse.querySelectorAll('[data-open-character]').forEach((btn) => {
