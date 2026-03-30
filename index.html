@@ -1141,22 +1141,58 @@
     .actor-gallery {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 12px;
+      gap: 18px;
+      position: relative;
+      z-index: 1;
     }
     .actor-card {
       text-align: left;
-      padding: 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(106, 182, 255, .36);
-      background: linear-gradient(165deg, rgba(12, 24, 48, .94), rgba(19, 37, 70, .84));
+      padding: 16px 15px;
+      border-radius: 20px;
+      border: 1px solid rgba(122, 196, 255, .46);
+      background:
+        radial-gradient(circle at 8% 14%, rgba(145, 229, 255, .2), transparent 34%),
+        linear-gradient(165deg, rgba(12, 24, 48, .94), rgba(19, 37, 70, .84));
       display: grid;
-      gap: 6px;
+      gap: 8px;
       cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform .26s ease, box-shadow .26s ease, border-color .26s ease, filter .26s ease;
+      box-shadow:
+        0 10px 18px rgba(2, 8, 24, .44),
+        0 0 0 1px rgba(180, 227, 255, .08) inset;
+    }
+    .actor-card::after {
+      content: '✦';
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: .8rem;
+      color: rgba(183, 238, 255, .72);
+      text-shadow: 0 0 10px rgba(117, 220, 255, .66);
+      opacity: .82;
+    }
+    .actor-card:hover {
+      transform: translateY(-4px) scale(1.012);
+      border-color: rgba(146, 224, 255, .85);
+      box-shadow:
+        0 14px 24px rgba(4, 12, 30, .58),
+        0 0 0 1px rgba(190, 235, 255, .24) inset,
+        0 0 22px rgba(113, 203, 255, .34);
+      filter: saturate(1.08);
     }
     .actor-card.active {
       border-color: var(--accent);
-      box-shadow: var(--accent-glow);
-      background: linear-gradient(165deg, rgba(15, 35, 69, .96), rgba(16, 62, 104, .84));
+      box-shadow:
+        0 18px 28px rgba(4, 12, 31, .62),
+        0 0 0 1px rgba(226, 246, 255, .25) inset,
+        0 0 30px rgba(102, 212, 255, .48),
+        var(--accent-glow);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(161, 233, 255, .24), transparent 34%),
+        linear-gradient(165deg, rgba(15, 35, 69, .96), rgba(16, 62, 104, .84));
+      transform: translateY(-4px);
     }
     .actor-card-title {
       margin: 0;
@@ -1165,14 +1201,17 @@
     }
     .actor-card-meta {
       margin: 0;
-      color: var(--muted);
+      color: #c4dffa;
       font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .01em;
     }
     .actor-detail-grid {
       display: grid;
-      gap: 14px;
+      gap: 20px;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       align-items: start;
+      padding: 4px;
     }
     .actor-character-list {
       list-style: none;
@@ -1184,12 +1223,21 @@
     }
     .actor-character-item {
       width: 100%;
-      padding: 8px;
-      border-radius: 12px;
-      border: 1px solid rgba(111, 180, 255, .26);
-      background: rgba(13, 25, 49, .72);
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(131, 200, 255, .32);
+      background:
+        radial-gradient(circle at 9% 12%, rgba(150, 232, 255, .12), transparent 30%),
+        rgba(13, 25, 49, .78);
       display: grid;
-      gap: 6px;
+      gap: 8px;
+      box-shadow: 0 8px 14px rgba(5, 12, 30, .32);
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+    .actor-character-item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(152, 225, 255, .52);
+      box-shadow: 0 12px 18px rgba(5, 13, 32, .45), 0 0 16px rgba(105, 199, 255, .2);
     }
     .actor-blocked-actions {
       margin: 0 0 10px;
@@ -1201,6 +1249,25 @@
     .actor-character-item.locked {
       border-style: dashed;
       opacity: .8;
+    }
+    .actor-panel-title,
+    .actor-detail-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .actor-panel-title::before {
+      content: '🌟';
+      font-size: 1.05rem;
+      filter: drop-shadow(0 0 7px rgba(126, 214, 255, .56));
+    }
+    .actor-detail-title::before {
+      content: '🎭';
+      font-size: 1rem;
+    }
+    .actor-action-btn::after {
+      content: ' ✨';
+      font-size: .86rem;
     }
     .actor-character-video {
       width: 100%;
@@ -1689,6 +1756,36 @@
       background-size: 26px 26px;
       opacity: .38;
     }
+    .actors-shell {
+      border-radius: calc(var(--radius) + 8px);
+      gap: 18px;
+      isolation: isolate;
+    }
+    .actors-shell::before {
+      background-image:
+        radial-gradient(circle, rgba(233, 247, 255, .16) 1px, transparent 1.4px),
+        radial-gradient(circle at 16% 24%, rgba(151, 232, 255, .2), transparent 34%),
+        radial-gradient(circle at 82% 78%, rgba(205, 138, 255, .14), transparent 40%);
+      background-size: 24px 24px, 100% 100%, 100% 100%;
+      opacity: .44;
+    }
+    .actors-shell::after {
+      content: '';
+      position: absolute;
+      inset: -16% -8% -18%;
+      border-radius: 50%;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 68% 20%, rgba(136, 239, 255, .16), transparent 56%),
+        radial-gradient(ellipse at 30% 72%, rgba(188, 132, 255, .14), transparent 58%);
+      filter: blur(10px);
+      opacity: .52;
+      z-index: 0;
+    }
+    .actors-shell > * {
+      position: relative;
+      z-index: 1;
+    }
     .characters-gallery {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(128px, 128px));
@@ -2175,6 +2272,30 @@
       }
       .content { height: auto; }
       html, body { overflow: auto; }
+    }
+    @media (max-width: 720px) {
+      .actor-gallery { gap: 12px; }
+      .actor-card {
+        border-radius: 16px;
+        box-shadow: 0 8px 14px rgba(4, 10, 25, .36);
+      }
+      .actor-card:hover,
+      .actor-card.active {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 16px rgba(4, 11, 28, .42), 0 0 14px rgba(104, 196, 255, .24);
+      }
+      .actor-character-item {
+        border-radius: 14px;
+        box-shadow: 0 6px 10px rgba(4, 10, 26, .3);
+      }
+      .actor-character-item:hover {
+        transform: none;
+        box-shadow: 0 8px 12px rgba(4, 10, 26, .32);
+      }
+      .actors-shell::after {
+        filter: blur(4px);
+        opacity: .3;
+      }
     }
   </style>
 </head>
@@ -4808,10 +4929,10 @@
         }))
       ];
       viewActores.innerHTML = `
-        <section class="mock-shell holo-card">
+        <section class="mock-shell holo-card actors-shell">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-            <h2 style="margin: 0;">Colección de actores</h2>
-            <button id="toggleActorFormBtn" class="neon-btn">Agregar Nuevo Actor</button>
+            <h2 class="actor-panel-title" style="margin: 0;">Colección de actores</h2>
+            <button id="toggleActorFormBtn" class="neon-btn actor-action-btn">Agregar Nuevo Actor</button>
           </div>
 
           <form id="addActorForm" class="add-character-form" style="display: none; margin-top: 10px;">
@@ -4844,7 +4965,7 @@
             <article class="mock-box actor-detail-grid" style="margin-top: 16px;">
               <div style="grid-column: 1 / -1;">
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0;">${actor}</h3>
+                <h3 class="actor-detail-title" style="margin: 0;">${actor}</h3>
                 <div class="actions">
                   <button id="editActorBtn" class="neon-btn">✏️ Editar Actor</button>
                   <button id="deleteActorBtn" class="neon-btn" style="color: #ffb6b6; border-color: #ffb6b6;">🗑️ Eliminar</button>
