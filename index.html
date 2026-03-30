@@ -2569,6 +2569,54 @@
     .character-actor-card.locked img {
       filter: blur(1px) brightness(.55);
     }
+    .profile-avatar {
+      width: 160px;
+      height: 160px;
+      border-radius: 20px;
+      object-fit: cover;
+      box-shadow: 0 0 20px rgba(43, 247, 255, 0.2);
+      display: block;
+    }
+    .profile-avatar--locked {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      border-radius: 20px;
+      overflow: hidden;
+      display: grid;
+      place-items: end center;
+      padding: 14px;
+      border: 1px dashed rgba(168, 189, 214, .55);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .12);
+      background:
+        radial-gradient(circle at 50% 24%, rgba(255, 255, 255, .14), transparent 44%),
+        linear-gradient(180deg, #596271 0%, #3a424e 55%, #262d38 100%);
+    }
+    .profile-avatar--locked::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: -16%;
+      width: 50%;
+      height: 62%;
+      transform: translateX(-50%);
+      background: #090c12;
+      border-radius: 44% 44% 12% 12% / 52% 52% 9% 9%;
+      box-shadow: 0 -16px 0 -7px #090c12, 0 16px 24px rgba(0, 0, 0, .38);
+    }
+    .profile-avatar--locked .profile-avatar-lock-label {
+      position: relative;
+      z-index: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(211, 226, 244, .42);
+      background: rgba(10, 14, 22, .68);
+      color: #f2f6fb;
+      font-size: .78rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      backdrop-filter: blur(2px);
+    }
     .mock-row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     .mock-box {
       background: var(--panel-2);
@@ -5221,10 +5269,22 @@
         const actorCards = [...unlockedActors, ...lockedActors]
           .sort((a, b) => a.actorName.localeCompare(b.actorName, 'es', { sensitivity: 'base' }));
 
-        // Imagen de portada (toma la del primer video o pone placeholder)
-        const profileImage = unlockedActors.length > 0 && unlockedActors[0].video 
-            ? getVideoThumbnail(unlockedActors[0].video) 
-            : createPlaceholderCover(focusedCharacter);
+        const isCharacterLocked = realVideos.length === 0;
+        // Imagen de portada (si no hay videos reproducibles se muestra estado bloqueado)
+        const profileImage = !isCharacterLocked && unlockedActors.length > 0 && unlockedActors[0].video
+          ? getVideoThumbnail(unlockedActors[0].video)
+          : createPlaceholderCover(focusedCharacter);
+        const profileAvatarMarkup = isCharacterLocked
+          ? `
+              <div
+                class="profile-avatar--locked"
+                role="img"
+                aria-label="Avatar de ${focusedCharacter} en estado bloqueado, sin videos reproducibles disponibles"
+              >
+                <span class="profile-avatar-lock-label">Bloqueado</span>
+              </div>
+            `
+          : `<img src="${profileImage}" class="profile-avatar" alt="Avatar de ${focusedCharacter}" loading="lazy">`;
 
         viewIndice.innerHTML = `
           <section class="hud-panel holo-card profile-layout character-profile-layout">
