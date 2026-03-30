@@ -923,6 +923,37 @@
       display: inline-flex;
       transform: translateY(-1px);
     }
+    .character-header-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .character-header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .character-action-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .character-action-icon.danger {
+      color: #ffb6b6;
+      border-color: #ff7070;
+      background: rgba(110, 20, 28, .35);
+    }
+    .character-action-icon.danger:hover {
+      border-color: #ff8e8e;
+      background: rgba(130, 28, 37, .5);
+      box-shadow: 0 0 0 1px rgba(255, 126, 126, .35), 0 0 18px rgba(255, 102, 102, .25);
+    }
 
     .filter-sidebar {
       position: fixed;
@@ -5020,14 +5051,16 @@
             <div class="universe-hero" style="border-bottom: 1px solid rgba(111, 180, 255, 0.28); padding-bottom: 20px;">
               <img src="${profileImage}" style="width: 160px; height: 160px; border-radius: 20px; object-fit: cover; box-shadow: 0 0 20px rgba(43, 247, 255, 0.2);" alt="Avatar de ${focusedCharacter}">
               <div>
-                <h2 class="section-title detail-character" style="font-size: 2.2rem; margin-bottom: 8px;">${focusedCharacter}</h2>
+                <div class="character-header-main">
+                  <h2 class="section-title detail-character" style="font-size: 2.2rem; margin-bottom: 8px;">${focusedCharacter}</h2>
+                  <div class="character-header-actions" role="group" aria-label="Acciones del personaje">
+                    <button id="editCharacterBtn" class="neon-btn character-action-icon" aria-label="Editar personaje"><span aria-hidden="true">✏️</span></button>
+                    <button id="deleteCharacterBtn" class="neon-btn character-action-icon danger" aria-label="Eliminar personaje"><span aria-hidden="true">❌</span></button>
+                  </div>
+                </div>
                 <div class="detail-meta" style="margin-bottom: 14px; gap: 12px;">
                   <span class="badge ${rarityClass(rareza)}" style="font-size: 0.9rem; padding: 6px 14px;">🌟 ${rareza}</span>
                   <span class="badge rare-comun" style="font-size: 0.9rem; padding: 6px 14px;">🪐 Universos: ${universos.join(', ') || 'Ninguno'}</span>
-                </div>
-                <div class="actions">
-                  <button id="editCharacterBtn" class="neon-btn neon-btn--primary">✏️ Editar Perfil Completo</button>
-                  <button id="deleteCharacterBtn" class="neon-btn" style="color: #ffb6b6; border-color: #ffb6b6;">🗑️ Eliminar Personaje</button>
                 </div>
               </div>
             </div>
