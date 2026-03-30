@@ -3217,11 +3217,12 @@
       const personaje = video.personaje || 'Sin personaje';
       const actor = video.actor_de_doblaje || 'Sin actor';
 
+      const characterVideos = VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje);
       const universosRelacionados = [...new Set(
-        VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje)
-          .flatMap(v => getVideoUniverses(v))
+        characterVideos.flatMap(v => getVideoUniverses(v))
       )];
-      const saludosActor = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
+      const actoresDoblaje = [...new Set(characterVideos.map(v => v.actor_de_doblaje || 'Sin actor'))];
+      let actorSeleccionado = actor;
 
       const modal = document.createElement('section');
       modal.className = 'detail-modal';
@@ -3231,7 +3232,6 @@
           <div class="detail-grid">
             <section class="hud-panel holo-card">
               <h3 class="section-title detail-character">${personaje}</h3>
-              <p class="detail-meta"><strong>Actor de doblaje:</strong> <button class="detail-actor-link" data-open-actor="${actor}">${actor}</button></p>
               <span class="badge ${rarityClass(video.rareza || 'Común')}">${video.rareza || 'Común'}</span>
               <div class="video-preview" data-video-preview>
                 <img src="${getVideoThumbnail(video)}" alt="Miniatura del video de ${personaje}">
@@ -3240,17 +3240,18 @@
                 </div>
               </div>
               <p class="section-note">El saludo inicia solo cuando haces click en “Reproducir saludo”.</p>
-              <div class="actions">
-                <button id="openCharacterProfile" class="neon-btn">Ver perfil del personaje</button>
-                <button id="editVideo" class="neon-btn">Editar personaje/video</button>
-                <button id="deleteVideo" class="neon-btn">Eliminar personaje/video</button>
-              </div>
             </section>
             <aside class="hud-panel holo-card">
+              <h4 class="section-title">Actores de doblaje</h4>
+              <div class="actions">${actoresDoblaje.map(name => `<button class="neon-btn" data-play-actor="${name}">${name}</button>`).join('') || '<span>Sin datos</span>'}</div>
               <h4 class="section-title">Universos relacionados</h4>
               <ul class="detail-list terminal-list">${universosRelacionados.map(u => `<li>${u}</li>`).join('') || '<li>Sin datos</li>'}</ul>
-              <h4 class="section-title">Saludos del actor</h4>
-              <ul class="detail-list terminal-list">${saludosActor.map(item => `<li>${item.personaje || 'Sin personaje'} · ${item.titulo || 'Sin título'}</li>`).join('') || '<li>Sin datos</li>'}</ul>
+              <div class="actions">
+                <button id="editVideo" class="neon-btn">Editar personaje</button>
+                <button id="deleteVideo" class="neon-btn">Eliminar personaje</button>
+                <button id="openCharacterProfile" class="neon-btn">Ver perfil del personaje</button>
+                <button id="openActorProfile" class="neon-btn">Ver perfil del actor</button>
+              </div>
             </aside>
           </div>
         </article>
@@ -3265,15 +3266,25 @@
         if (!target) return;
         target.innerHTML = `<iframe src="${toEmbedUrl(video.url_youtube || video.url_video, 0)}" title="Video detallado" allow="encrypted-media" allowfullscreen></iframe>`;
       });
+      modal.querySelectorAll('[data-play-actor]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          const actorName = event.currentTarget.dataset.playActor;
+          const actorVideo = characterVideos.find(item => (item.actor_de_doblaje || 'Sin actor') === actorName);
+          if (!actorVideo) return;
+          actorSeleccionado = actorName;
+          const target = modal.querySelector('[data-video-preview]');
+          if (!target) return;
+          target.innerHTML = `<iframe src="${toEmbedUrl(actorVideo.url_youtube || actorVideo.url_video, 0)}" title="Video de ${personaje} con ${actorName}" allow="encrypted-media" allowfullscreen></iframe>`;
+        });
+      });
       modal.querySelector('#openCharacterProfile')?.addEventListener('click', () => {
         modal.remove();
         openCharacterProfile(personaje);
       });
-      modal.querySelector('[data-open-actor]')?.addEventListener('click', (event) => {
-        const actorName = event.currentTarget.dataset.openActor;
-        if (!actorName) return;
+      modal.querySelector('#openActorProfile')?.addEventListener('click', () => {
+        if (!actorSeleccionado) return;
         modal.remove();
-        state.actorFocus = actorName;
+        state.actorFocus = actorSeleccionado;
         state.actorDetailsExpanded = true;
         changeView('actores');
       });
