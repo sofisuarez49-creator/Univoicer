@@ -2808,7 +2808,14 @@
       return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 280'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%2359d0ff'/><stop offset='100%' stop-color='%23a78bfa'/></linearGradient></defs><rect width='400' height='280' fill='%23111a34'/><rect x='14' y='14' width='372' height='252' rx='18' fill='url(%23g)' opacity='.4'/><text x='200' y='150' font-size='30' font-family='Arial, sans-serif' text-anchor='middle' fill='white'>${label}</text></svg>`;
     }
 
+    function createNoUniversePlaceholderCover() {
+      return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 280'><defs><linearGradient id='space' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%23050b17'/><stop offset='100%' stop-color='%23162543'/></linearGradient></defs><rect width='400' height='280' fill='url(%23space)'/><circle cx='306' cy='72' r='56' fill='%232bf7ff' opacity='.08'/><circle cx='84' cy='214' r='70' fill='%23a78bfa' opacity='.12'/><text x='200' y='160' font-size='96' font-family='Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif' text-anchor='middle'>%F0%9F%8C%8C</text></svg>";
+    }
+
     function getSafeUniverseCover(name, cover) {
+      if (normalizeUniverseName(name) === normalizeUniverseName('Sin universo')) {
+        return cover || createNoUniversePlaceholderCover();
+      }
       return cover || createPlaceholderCover(name);
     }
 
@@ -3311,7 +3318,7 @@
         if (!node.cover && universeData) {
           node.cover = getSafeUniverseCover(node.name, getUniverseCover(universeData.videos || []));
         } else if (!node.cover) {
-          node.cover = createPlaceholderCover(node.name);
+          node.cover = getSafeUniverseCover(node.name, '');
         }
       });
       saveUniverseNodes();
@@ -3582,7 +3589,7 @@
         const coverEl = nodeEl.querySelector('.universe-cover');
         coverEl?.addEventListener('error', () => {
           coverEl.classList.add('is-broken');
-          coverEl.src = createPlaceholderCover(nodeEl.dataset.open);
+          coverEl.src = getSafeUniverseCover(nodeEl.dataset.open, '');
         });
         nodeEl.addEventListener('click', (event) => {
           event.stopPropagation();
