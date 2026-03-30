@@ -1334,6 +1334,54 @@
       box-shadow: 0 0 34px rgba(99, 206, 255, .72), 0 0 16px rgba(140, 104, 255, .45);
     }
 
+    .locked-preview {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background:
+        radial-gradient(circle at 50% 26%, rgba(255, 255, 255, .12), transparent 42%),
+        linear-gradient(180deg, #555d68 0%, #303641 58%, #252b35 100%);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .locked-preview::before {
+      content: '';
+      position: absolute;
+      bottom: -18%;
+      left: 50%;
+      width: 46%;
+      height: 58%;
+      transform: translateX(-50%);
+      background: #0a0d12;
+      border-radius: 46% 46% 10% 10% / 52% 52% 8% 8%;
+      box-shadow: 0 -18px 0 -8px #0a0d12, 0 18px 26px rgba(0, 0, 0, .35);
+    }
+
+    .locked-labels {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 0 16px;
+      text-shadow: 0 4px 14px rgba(0, 0, 0, .65);
+    }
+
+    .locked-labels strong {
+      display: block;
+      font-size: clamp(1.35rem, 1.1rem + .8vw, 1.8rem);
+      letter-spacing: .08em;
+      color: #f4f7fb;
+      margin-bottom: 6px;
+    }
+
+    .locked-labels span {
+      display: block;
+      font-size: .9rem;
+      color: #d7deea;
+      opacity: .95;
+    }
+
     .section-note {
       margin: 6px 0 0;
       color: #9cbce4;
@@ -3216,13 +3264,31 @@
       if (!video) return;
       const personaje = video.personaje || 'Sin personaje';
       const actor = video.actor_de_doblaje || 'Sin actor';
+      const hasPlayableVideo = hasGreetingVideo(video);
 
       const characterVideos = VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje);
       const universosRelacionados = [...new Set(
         characterVideos.flatMap(v => getVideoUniverses(v))
       )];
-      const actoresDoblaje = [...new Set(characterVideos.map(v => v.actor_de_doblaje || 'Sin actor'))];
-      let actorSeleccionado = actor;
+      const saludosActor = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
+      const videoPreviewMarkup = hasPlayableVideo
+        ? `
+          <img src="${getVideoThumbnail(video)}" alt="Miniatura del video de ${personaje}">
+          <div class="preview-overlay">
+            <button class="play-btn" id="playVideoPreview" aria-label="Reproducir saludo">Reproducir saludo</button>
+          </div>
+        `
+        : `
+          <div class="locked-preview" aria-label="Personaje bloqueado, sin URL de saludo disponible">
+            <div class="locked-labels">
+              <strong>BLOQUEADO</strong>
+              <span>Aún no se han agregado URL para este personaje.</span>
+            </div>
+          </div>
+        `;
+      const videoNote = hasPlayableVideo
+        ? 'El saludo inicia solo cuando haces click en “Reproducir saludo”.'
+        : 'Este personaje todavía no tiene un saludo cargado.';
 
       const modal = document.createElement('section');
       modal.className = 'detail-modal';
@@ -3234,12 +3300,14 @@
               <h3 class="section-title detail-character">${personaje}</h3>
               <span class="badge ${rarityClass(video.rareza || 'Común')}">${video.rareza || 'Común'}</span>
               <div class="video-preview" data-video-preview>
-                <img src="${getVideoThumbnail(video)}" alt="Miniatura del video de ${personaje}">
-                <div class="preview-overlay">
-                  <button class="play-btn" id="playVideoPreview" aria-label="Reproducir saludo">Reproducir saludo</button>
-                </div>
+                ${videoPreviewMarkup}
               </div>
-              <p class="section-note">El saludo inicia solo cuando haces click en “Reproducir saludo”.</p>
+              <p class="section-note">${videoNote}</p>
+              <div class="actions">
+                <button id="openCharacterProfile" class="neon-btn">Ver perfil del personaje</button>
+                <button id="editVideo" class="neon-btn">Editar personaje/video</button>
+                <button id="deleteVideo" class="neon-btn">Eliminar personaje/video</button>
+              </div>
             </section>
             <aside class="hud-panel holo-card">
               <h4 class="section-title">Actores de doblaje</h4>
@@ -3261,22 +3329,13 @@
       });
       document.body.appendChild(modal);
       modal.querySelector('#closeDetail')?.addEventListener('click', () => modal.remove());
-      modal.querySelector('#playVideoPreview')?.addEventListener('click', () => {
-        const target = modal.querySelector('[data-video-preview]');
-        if (!target) return;
-        target.innerHTML = `<iframe src="${toEmbedUrl(video.url_youtube || video.url_video, 0)}" title="Video detallado" allow="encrypted-media" allowfullscreen></iframe>`;
-      });
-      modal.querySelectorAll('[data-play-actor]').forEach((btn) => {
-        btn.addEventListener('click', (event) => {
-          const actorName = event.currentTarget.dataset.playActor;
-          const actorVideo = characterVideos.find(item => (item.actor_de_doblaje || 'Sin actor') === actorName);
-          if (!actorVideo) return;
-          actorSeleccionado = actorName;
+      if (hasPlayableVideo) {
+        modal.querySelector('#playVideoPreview')?.addEventListener('click', () => {
           const target = modal.querySelector('[data-video-preview]');
           if (!target) return;
-          target.innerHTML = `<iframe src="${toEmbedUrl(actorVideo.url_youtube || actorVideo.url_video, 0)}" title="Video de ${personaje} con ${actorName}" allow="encrypted-media" allowfullscreen></iframe>`;
+          target.innerHTML = `<iframe src="${toEmbedUrl(video.url_youtube || video.url_video, 0)}" title="Video detallado" allow="encrypted-media" allowfullscreen></iframe>`;
         });
-      });
+      }
       modal.querySelector('#openCharacterProfile')?.addEventListener('click', () => {
         modal.remove();
         openCharacterProfile(personaje);
