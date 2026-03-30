@@ -3266,9 +3266,9 @@
       const actor = video.actor_de_doblaje || 'Sin actor';
       const hasPlayableVideo = hasGreetingVideo(video);
 
+      const characterVideos = VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje);
       const universosRelacionados = [...new Set(
-        VIDEOS.filter(v => (v.personaje || 'Sin personaje') === personaje)
-          .flatMap(v => getVideoUniverses(v))
+        characterVideos.flatMap(v => getVideoUniverses(v))
       )];
       const saludosActor = VIDEOS.filter(v => (v.actor_de_doblaje || 'Sin actor') === actor);
       const videoPreviewMarkup = hasPlayableVideo
@@ -3298,7 +3298,6 @@
           <div class="detail-grid">
             <section class="hud-panel holo-card">
               <h3 class="section-title detail-character">${personaje}</h3>
-              <p class="detail-meta"><strong>Actor de doblaje:</strong> <button class="detail-actor-link" data-open-actor="${actor}">${actor}</button></p>
               <span class="badge ${rarityClass(video.rareza || 'Común')}">${video.rareza || 'Común'}</span>
               <div class="video-preview" data-video-preview>
                 ${videoPreviewMarkup}
@@ -3311,10 +3310,16 @@
               </div>
             </section>
             <aside class="hud-panel holo-card">
+              <h4 class="section-title">Actores de doblaje</h4>
+              <div class="actions">${actoresDoblaje.map(name => `<button class="neon-btn" data-play-actor="${name}">${name}</button>`).join('') || '<span>Sin datos</span>'}</div>
               <h4 class="section-title">Universos relacionados</h4>
               <ul class="detail-list terminal-list">${universosRelacionados.map(u => `<li>${u}</li>`).join('') || '<li>Sin datos</li>'}</ul>
-              <h4 class="section-title">Saludos del actor</h4>
-              <ul class="detail-list terminal-list">${saludosActor.map(item => `<li>${item.personaje || 'Sin personaje'} · ${item.titulo || 'Sin título'}</li>`).join('') || '<li>Sin datos</li>'}</ul>
+              <div class="actions">
+                <button id="editVideo" class="neon-btn">Editar personaje</button>
+                <button id="deleteVideo" class="neon-btn">Eliminar personaje</button>
+                <button id="openCharacterProfile" class="neon-btn">Ver perfil del personaje</button>
+                <button id="openActorProfile" class="neon-btn">Ver perfil del actor</button>
+              </div>
             </aside>
           </div>
         </article>
@@ -3335,11 +3340,10 @@
         modal.remove();
         openCharacterProfile(personaje);
       });
-      modal.querySelector('[data-open-actor]')?.addEventListener('click', (event) => {
-        const actorName = event.currentTarget.dataset.openActor;
-        if (!actorName) return;
+      modal.querySelector('#openActorProfile')?.addEventListener('click', () => {
+        if (!actorSeleccionado) return;
         modal.remove();
-        state.actorFocus = actorName;
+        state.actorFocus = actorSeleccionado;
         state.actorDetailsExpanded = true;
         changeView('actores');
       });
