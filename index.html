@@ -1488,23 +1488,60 @@
       width: min(980px, 100%);
       max-height: calc(100vh - 36px);
       overflow: auto;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: linear-gradient(165deg, rgba(13, 26, 49, .97), rgba(8, 18, 36, .97));
-      box-shadow: var(--shadow);
+      border-radius: 20px;
+      border: 1px solid rgba(132, 210, 255, .64);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(110, 186, 255, .3), transparent 42%),
+        radial-gradient(circle at 90% 12%, rgba(101, 255, 245, .2), transparent 40%),
+        linear-gradient(155deg, rgba(24, 43, 88, .96), rgba(20, 19, 71, .96) 48%, rgba(7, 20, 46, .98));
+      box-shadow:
+        0 0 0 1px rgba(125, 223, 255, .26),
+        0 18px 42px rgba(3, 7, 24, .74),
+        0 0 42px rgba(85, 208, 255, .2);
       padding: 16px;
       display: grid;
       gap: 12px;
+    }
+    .detail-content .holo-card {
+      border: 1px solid rgba(130, 214, 255, .52);
+      background:
+        radial-gradient(circle at 18% 10%, rgba(128, 208, 255, .22), transparent 48%),
+        radial-gradient(circle at 86% 14%, rgba(151, 123, 255, .2), transparent 42%),
+        linear-gradient(162deg, rgba(10, 32, 68, .88), rgba(22, 24, 74, .82), rgba(12, 18, 46, .9));
+      box-shadow:
+        0 2px 0 rgba(176, 230, 255, .16) inset,
+        0 0 0 1px rgba(133, 206, 255, .16),
+        0 16px 30px rgba(5, 8, 28, .72),
+        0 0 26px rgba(74, 193, 255, .22);
     }
     .detail-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
       gap: 14px;
     }
+    .detail-grid > aside.holo-card {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .detail-grid > aside.holo-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        radial-gradient(2px 2px at 16% 20%, rgba(206, 242, 255, .26), transparent 72%),
+        radial-gradient(1.8px 1.8px at 78% 14%, rgba(174, 255, 242, .24), transparent 72%),
+        radial-gradient(1.7px 1.7px at 62% 62%, rgba(197, 201, 255, .24), transparent 74%),
+        radial-gradient(120px 70px at 78% 78%, rgba(70, 230, 255, .14), transparent 74%);
+      opacity: .72;
+      z-index: -1;
+    }
     .detail-actor-link {
       background: none;
       border: 0;
-      color: var(--accent);
+      color: #7bf6ff;
       cursor: pointer;
       padding: 0;
       font-weight: 700;
@@ -1512,33 +1549,67 @@
     }
     .detail-list {
       margin: 0;
-      padding-left: 18px;
+      list-style: none;
+      padding: 0;
       display: grid;
-      gap: 4px;
-      color: #d5ecff;
+      gap: 8px;
+      color: #e8f6ff;
     }
     .detail-list-soft {
-      list-style: none;
-      padding: 12px 14px;
+      padding: 0;
       border-radius: 14px;
-      border: 1px solid rgba(131, 173, 255, .24);
-      background: linear-gradient(160deg, rgba(15, 31, 56, .86), rgba(19, 40, 72, .72));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      border: 0;
+      background: none;
+      box-shadow: none;
       gap: 8px;
     }
     .detail-list-soft li {
       position: relative;
-      padding-left: 14px;
-    }
-    .detail-list-soft li::before {
-      content: '✦';
-      position: absolute;
-      left: 0;
-      color: rgba(111, 239, 255, .85);
-      font-size: .82em;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(127, 204, 255, .45);
+      background: linear-gradient(150deg, rgba(22, 48, 88, .8), rgba(34, 24, 86, .7));
+      box-shadow:
+        inset 0 1px 0 rgba(226, 244, 255, .16),
+        0 8px 18px rgba(3, 10, 30, .45),
+        0 0 12px rgba(78, 193, 255, .18);
+      color: #eef7ff;
+      line-height: 1.35;
     }
     .detail-close {
       justify-self: end;
+    }
+    .detail-content .neon-btn {
+      border: 1px solid rgba(127, 219, 255, .65);
+      color: #ebf7ff;
+      background: linear-gradient(165deg, rgba(28, 74, 132, .9), rgba(40, 30, 112, .86));
+      box-shadow:
+        0 12px 20px rgba(2, 11, 30, .42),
+        0 0 14px rgba(74, 201, 255, .26),
+        inset 0 1px 0 rgba(232, 247, 255, .24),
+        inset 0 -2px 0 rgba(3, 9, 25, .5);
+      transition: transform .18s ease, box-shadow .2s ease, border-color .2s ease, filter .2s ease;
+    }
+    .detail-content .neon-btn:hover {
+      border-color: #8cf8ff;
+      box-shadow:
+        0 14px 24px rgba(5, 16, 42, .5),
+        0 0 22px rgba(112, 246, 255, .34),
+        inset 0 1px 0 rgba(238, 250, 255, .3),
+        inset 0 -2px 0 rgba(7, 12, 35, .52);
+      filter: brightness(1.1);
+    }
+    .detail-content .neon-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 7px 12px rgba(2, 11, 30, .44),
+        0 0 12px rgba(74, 201, 255, .22),
+        inset 0 1px 0 rgba(232, 247, 255, .2),
+        inset 0 -1px 0 rgba(3, 9, 25, .54);
+    }
+    .detail-content .neon-btn:focus-visible {
+      outline: 2px solid #96fbff;
+      outline-offset: 2px;
     }
     .profile-layout { display: grid; gap: 14px; }
     .profile-section {
@@ -3576,17 +3647,17 @@
           <p id="characterProfileFeedback" class="inline-feedback" aria-live="polite"></p>
           <article class="profile-section">
             <h4>Actores asociados (${actors.length})</h4>
-            <ul class="detail-list terminal-list">${actors.map(name => `<li>${name}</li>`).join('') || '<li>Sin actores asociados.</li>'}</ul>
+            <ul class="detail-list detail-list-soft">${actors.map(name => `<li>${name}</li>`).join('') || '<li>Sin actores asociados.</li>'}</ul>
             <div class="actions"><button id="addActorToCharacter" class="neon-btn">Agregar actor</button></div>
           </article>
           <article class="profile-section">
             <h4>Universos asociados (${universes.length})</h4>
-            <ul class="detail-list terminal-list">${universes.map(name => `<li>${name}</li>`).join('') || '<li>Sin universos asociados.</li>'}</ul>
+            <ul class="detail-list detail-list-soft">${universes.map(name => `<li>${name}</li>`).join('') || '<li>Sin universos asociados.</li>'}</ul>
             <div class="actions"><button id="addUniverseToCharacter" class="neon-btn">Agregar universo</button></div>
           </article>
           <article class="profile-section">
             <h4>Videos asociados (${videos.length})</h4>
-            <ul class="detail-list terminal-list">
+            <ul class="detail-list detail-list-soft">
               ${videos.map(item => `<li>${item.titulo || 'Sin título'} · ${item.actor_de_doblaje || 'Sin actor'} · ${(getVideoUniverses(item).join(', ') || 'Sin universo')}</li>`).join('') || '<li>Sin videos asociados.</li>'}
             </ul>
           </article>
