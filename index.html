@@ -1245,6 +1245,49 @@
     .rare-epico { background: rgba(112,70,223,.13); color: var(--rare-epico); border-color: rgba(112,70,223,.35); }
     .rare-legendario { background: rgba(185,108,0,.14); color: var(--rare-legendario); border-color: rgba(185,108,0,.36); }
 
+    .rarity-highlight {
+      margin: 4px 0 14px;
+      border-radius: 16px;
+      border: 2px solid currentColor;
+      padding: 16px 18px;
+      text-align: center;
+      font-size: clamp(1.1rem, .92rem + .7vw, 1.5rem);
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      background: linear-gradient(160deg, rgba(7, 14, 28, .88), rgba(8, 18, 36, .82));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 22px rgba(0, 0, 0, .45);
+      text-shadow: 0 0 12px rgba(255, 255, 255, .2);
+    }
+
+    .rarity-highlight.rare-comun {
+      background: linear-gradient(160deg, rgba(57, 72, 95, .72), rgba(26, 36, 52, .92));
+      border-color: rgba(157, 178, 203, .85);
+      box-shadow: inset 0 0 0 1px rgba(208, 220, 234, .16), 0 0 0 1px rgba(157, 178, 203, .34), 0 0 24px rgba(157, 178, 203, .28);
+      text-shadow: 0 0 10px rgba(157, 178, 203, .55);
+    }
+
+    .rarity-highlight.rare-raro {
+      background: linear-gradient(160deg, rgba(9, 72, 83, .78), rgba(3, 30, 41, .95));
+      border-color: rgba(102, 238, 247, .95);
+      box-shadow: inset 0 0 0 1px rgba(184, 253, 255, .2), 0 0 0 1px rgba(102, 238, 247, .45), 0 0 28px rgba(102, 238, 247, .35);
+      text-shadow: 0 0 12px rgba(102, 238, 247, .65);
+    }
+
+    .rarity-highlight.rare-epico {
+      background: linear-gradient(160deg, rgba(82, 46, 148, .78), rgba(35, 18, 67, .95));
+      border-color: rgba(197, 143, 255, .95);
+      box-shadow: inset 0 0 0 1px rgba(239, 215, 255, .18), 0 0 0 1px rgba(197, 143, 255, .4), 0 0 30px rgba(197, 143, 255, .36);
+      text-shadow: 0 0 13px rgba(197, 143, 255, .68);
+    }
+
+    .rarity-highlight.rare-legendario {
+      background: linear-gradient(160deg, rgba(121, 67, 8, .82), rgba(56, 29, 3, .96));
+      border-color: rgba(255, 187, 102, .98);
+      box-shadow: inset 0 0 0 1px rgba(255, 226, 187, .2), 0 0 0 1px rgba(255, 187, 102, .44), 0 0 32px rgba(255, 187, 102, .38);
+      text-shadow: 0 0 14px rgba(255, 205, 130, .72);
+    }
+
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     .detail-grid aside .actions {
       flex-direction: column;
@@ -1766,6 +1809,10 @@
       .detail-grid aside .actions {
         flex-direction: row;
         flex-wrap: wrap;
+      }
+      .rarity-highlight {
+        font-size: 1.05rem;
+        padding: 14px 12px;
       }
       .content { height: auto; }
       html, body { overflow: auto; }
@@ -3393,13 +3440,14 @@
             <section class="hud-panel holo-card">
               <h3 class="section-title detail-character">${personaje}</h3>
               <p class="detail-meta"><strong>Actor de doblaje:</strong> <button class="detail-actor-link" data-open-actor="${actor}">${actor}</button></p>
-              <span class="badge ${rarityClass(video.rareza || 'Común')}">${video.rareza || 'Común'}</span>
               <div class="video-preview" data-video-preview>
                 ${videoPreviewMarkup}
               </div>
               <p class="section-note">${videoNote}</p>
             </section>
             <aside class="hud-panel holo-card">
+              <h4 class="section-title">Rareza</h4>
+              <div class="rarity-highlight ${rarityClass(video.rareza || 'Común')}">${video.rareza || 'Común'}</div>
               <h4 class="section-title">Universos relacionados</h4>
               <ul class="detail-list detail-list-soft">${universosRelacionados.map(u => `<li>${u}</li>`).join('') || '<li>Sin datos</li>'}</ul>
               <h4 class="section-title">Actores de doblaje</h4>
