@@ -362,8 +362,16 @@
       background: linear-gradient(165deg, rgba(19, 39, 73, .98), rgba(14, 61, 102, .95));
     }
 
-    .view { display: none; }
+    .view {
+      display: none;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
     .view.active { display: block; animation: fade var(--anim-fade); }
+    #viewMap {
+      overflow: hidden;
+    }
 
     @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes floatSpace {
