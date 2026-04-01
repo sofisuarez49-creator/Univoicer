@@ -406,47 +406,6 @@
       scroll-behavior: smooth;
     }
 
-    .map-zoom-controls {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      z-index: 8;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(120, 196, 255, .55);
-      background: linear-gradient(165deg, rgba(8, 22, 46, .96), rgba(14, 36, 70, .94));
-      box-shadow: 0 8px 22px rgba(2, 7, 20, .45), inset 0 0 0 1px rgba(173, 221, 255, .1);
-      backdrop-filter: blur(6px);
-    }
-
-    .map-zoom-controls button {
-      min-width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      padding: 0;
-      font-size: 1rem;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .map-zoom-controls input[type="range"] {
-      width: clamp(110px, 10vw, 140px);
-      accent-color: var(--accent);
-    }
-
-    .map-zoom-value {
-      min-width: 46px;
-      text-align: right;
-      font-size: .84rem;
-      font-weight: 800;
-      color: #d6f8ff;
-    }
-
     #universeMapCanvas {
       position: relative;
       min-width: 100%;
@@ -3919,12 +3878,6 @@
       }).join('');
       viewMap.innerHTML = `
         <div class="universe-map-shell">
-          <div class="map-zoom-controls" aria-label="Controles de zoom del mapa">
-            <button type="button" class="map-zoom-btn" data-map-zoom-step="-25" aria-label="Reducir zoom">-</button>
-            <input type="range" class="map-zoom-range" min="25" max="200" step="25" value="100" aria-label="Nivel de zoom del mapa">
-            <span class="map-zoom-value" data-map-zoom-label>100%</span>
-            <button type="button" class="map-zoom-btn" data-map-zoom-step="25" aria-label="Aumentar zoom">+</button>
-          </div>
           <div id="universeMapCanvas" aria-label="Mapa de universos explorable">
             <div class="map-nebula-layer" aria-hidden="true"></div>
             <div class="map-stars-layer" aria-hidden="true"></div>
@@ -3946,27 +3899,6 @@
       if (!mapCanvas || !mapWorld) return;
 
       const mapShell = viewMap.querySelector('.universe-map-shell');
-      const zoomRange = viewMap.querySelector('.map-zoom-range');
-      const zoomLabel = viewMap.querySelector('[data-map-zoom-label]');
-      const zoomButtons = Array.from(viewMap.querySelectorAll('.map-zoom-btn'));
-      const MIN_ZOOM_PERCENT = 25;
-      const MAX_ZOOM_PERCENT = 200;
-      const ZOOM_STEP_PERCENT = 25;
-      const percentToScale = (percent) => Math.max(MIN_ZOOM_PERCENT, Math.min(MAX_ZOOM_PERCENT, percent)) / 100;
-      const scaleToPercent = (scale) => Math.round(Math.max(MIN_ZOOM_PERCENT, Math.min(MAX_ZOOM_PERCENT, scale * 100)));
-      const getViewportCenterWorld = () => {
-        if (!mapShell) return { x: state.mapCanvas.width / 2, y: state.mapCanvas.height / 2 };
-        const currentScale = state.mapViewport.scale || 1;
-        return {
-          x: (mapShell.scrollLeft + (mapShell.clientWidth / 2)) / currentScale,
-          y: (mapShell.scrollTop + (mapShell.clientHeight / 2)) / currentScale
-        };
-      };
-      const syncZoomControls = (scaleValue) => {
-        const zoomPercent = scaleToPercent(scaleValue);
-        if (zoomRange) zoomRange.value = String(zoomPercent);
-        if (zoomLabel) zoomLabel.textContent = `${zoomPercent}%`;
-      };
 
       const MIN_MAP_ZOOM = 0.25;
       const MAX_MAP_ZOOM = 2.0;
