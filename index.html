@@ -4000,12 +4000,14 @@
           const targetY = (focalPoint.y * safeScale) - pointerY;
           mapShell.scrollLeft = Math.max(0, targetX);
           mapShell.scrollTop = Math.max(0, targetY);
+          refreshScrollSliders();
           return;
         }
         const targetX = (state.mapViewport.centroidX * safeScale) - (mapShell.clientWidth / 2);
         const targetY = (state.mapViewport.centroidY * safeScale) - (mapShell.clientHeight / 2);
         mapShell.scrollLeft = Math.max(0, targetX);
         mapShell.scrollTop = Math.max(0, targetY);
+        refreshScrollSliders();
       };
 
       const fitMapToViewport = () => {
@@ -4026,6 +4028,7 @@
         const scale = Math.min(1, availableWidth / spanWidth, availableHeight / spanHeight);
         const centroid = getUniverseCentroid();
         applyMapScale(scale, centroid);
+        refreshScrollSliders();
       };
 
       const syncMapCanvasSize = ({ fitToViewport = false } = {}) => {
@@ -4052,6 +4055,18 @@
         zoomSlider.value = String(state.mapViewport.scale || 1);
       };
       syncZoomSlider();
+
+      mapScrollX?.addEventListener('input', (event) => {
+        if (!mapShell) return;
+        const value = Number(event.target.value) || 0;
+        mapShell.scrollLeft = value;
+      });
+      mapScrollY?.addEventListener('input', (event) => {
+        if (!mapShell) return;
+        const value = Number(event.target.value) || 0;
+        mapShell.scrollTop = value;
+      });
+      mapShell?.addEventListener('scroll', refreshScrollSliders, { passive: true });
 
       const closePopup = () => {
         const popup = document.getElementById('mapPopup');
