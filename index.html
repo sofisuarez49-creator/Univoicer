@@ -3855,12 +3855,29 @@
 
       const mapShell = viewMap.querySelector('.universe-map-shell');
 
+      const MIN_MAP_ZOOM = 0.25;
+      const MAX_MAP_ZOOM = 2.0;
+      const WHEEL_ZOOM_FACTOR = 1.1;
+      const syncMapZoomDisplay = (scaleValue) => {
+        const percentage = `${Math.round(scaleValue * 100)}%`;
+        const zoomPercentEl = viewMap.querySelector('[data-map-zoom-percent], #mapZoomPercent');
+        if (zoomPercentEl) zoomPercentEl.textContent = percentage;
+        const zoomRangeEl = viewMap.querySelector('[data-map-zoom-range], #mapZoomRange');
+        if (zoomRangeEl instanceof HTMLInputElement) {
+          zoomRangeEl.min = String(MIN_MAP_ZOOM);
+          zoomRangeEl.max = String(MAX_MAP_ZOOM);
+          zoomRangeEl.step = zoomRangeEl.step || '0.01';
+          zoomRangeEl.value = String(scaleValue);
+        }
+      };
+
       const applyMapScale = (nextScale, focalPoint) => {
         if (!mapShell) return;
-        const safeScale = Math.max(0.3, Number((nextScale || 1).toFixed(3)));
+        const safeScale = Math.max(MIN_MAP_ZOOM, Math.min(MAX_MAP_ZOOM, Number((nextScale || 1).toFixed(3))));
         state.mapViewport.scale = safeScale;
         mapWorld.style.transformOrigin = '0 0';
         mapWorld.style.transform = `scale(${safeScale})`;
+        syncMapZoomDisplay(safeScale);
         if (focalPoint && Number.isFinite(focalPoint.x) && Number.isFinite(focalPoint.y)) {
           state.mapViewport.centroidX = focalPoint.x;
           state.mapViewport.centroidY = focalPoint.y;
@@ -4125,20 +4142,19 @@
         openPopupAt(worldX, worldY);
       });
 
-      const zoomSteps = [0.7, 0.85, 1, 1.15, 1.3];
-      const advanceZoomScale = (event) => {
+      const handleWheelZoom = (event) => {
         event.preventDefault();
         event.stopPropagation();
         if (!mapShell) return;
+        if (event.deltaY === 0) return;
         const rect = mapCanvas.getBoundingClientRect();
         const scale = state.mapViewport.scale || 1;
         const worldX = (event.clientX - rect.left + mapShell.scrollLeft) / scale;
         const worldY = (event.clientY - rect.top + mapShell.scrollTop) / scale;
-        const roundedScale = Number(scale.toFixed(2));
-        const currentIndex = zoomSteps.findIndex(step => Math.abs(step - roundedScale) < 0.02);
-        const nextScale = currentIndex === -1
-          ? zoomSteps[0]
-          : zoomSteps[(currentIndex + 1) % zoomSteps.length];
+        const direction = event.deltaY < 0 ? 1 : -1;
+        const nextScale = direction > 0
+          ? scale * WHEEL_ZOOM_FACTOR
+          : scale / WHEEL_ZOOM_FACTOR;
         applyMapScale(nextScale, {
           x: worldX,
           y: worldY,
@@ -4146,8 +4162,7 @@
           pointerY: event.clientY - rect.top
         });
       };
-      mapWorld.addEventListener('dblclick', advanceZoomScale);
-      mapCanvas.addEventListener('dblclick', advanceZoomScale);
+      mapShell?.addEventListener('wheel', handleWheelZoom, { passive: false });
 
       window.addEventListener('resize', syncMapCanvasSize, { once: true });
     }
