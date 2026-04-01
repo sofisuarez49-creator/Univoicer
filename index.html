@@ -406,6 +406,47 @@
       scroll-behavior: smooth;
     }
 
+    .map-zoom-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 8;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(120, 196, 255, .55);
+      background: linear-gradient(165deg, rgba(8, 22, 46, .96), rgba(14, 36, 70, .94));
+      box-shadow: 0 8px 22px rgba(2, 7, 20, .45), inset 0 0 0 1px rgba(173, 221, 255, .1);
+      backdrop-filter: blur(6px);
+    }
+
+    .map-zoom-controls button {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      padding: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .map-zoom-controls input[type="range"] {
+      width: clamp(110px, 10vw, 140px);
+      accent-color: var(--accent);
+    }
+
+    .map-zoom-value {
+      min-width: 46px;
+      text-align: right;
+      font-size: .84rem;
+      font-weight: 800;
+      color: #d6f8ff;
+    }
+
     #universeMapCanvas {
       position: relative;
       min-width: 100%;
@@ -3839,6 +3880,12 @@
       }).join('');
       viewMap.innerHTML = `
         <div class="universe-map-shell">
+          <div class="map-zoom-controls" aria-label="Controles de zoom del mapa">
+            <button type="button" class="map-zoom-btn" data-map-zoom-step="-25" aria-label="Reducir zoom">-</button>
+            <input type="range" class="map-zoom-range" min="25" max="200" step="25" value="100" aria-label="Nivel de zoom del mapa">
+            <span class="map-zoom-value" data-map-zoom-label>100%</span>
+            <button type="button" class="map-zoom-btn" data-map-zoom-step="25" aria-label="Aumentar zoom">+</button>
+          </div>
           <div id="universeMapCanvas" aria-label="Mapa de universos explorable">
             <div class="map-nebula-layer" aria-hidden="true"></div>
             <div class="map-stars-layer" aria-hidden="true"></div>
@@ -3854,13 +3901,35 @@
       if (!mapCanvas || !mapWorld) return;
 
       const mapShell = viewMap.querySelector('.universe-map-shell');
+      const zoomRange = viewMap.querySelector('.map-zoom-range');
+      const zoomLabel = viewMap.querySelector('[data-map-zoom-label]');
+      const zoomButtons = Array.from(viewMap.querySelectorAll('.map-zoom-btn'));
+      const MIN_ZOOM_PERCENT = 25;
+      const MAX_ZOOM_PERCENT = 200;
+      const ZOOM_STEP_PERCENT = 25;
+      const percentToScale = (percent) => Math.max(MIN_ZOOM_PERCENT, Math.min(MAX_ZOOM_PERCENT, percent)) / 100;
+      const scaleToPercent = (scale) => Math.round(Math.max(MIN_ZOOM_PERCENT, Math.min(MAX_ZOOM_PERCENT, scale * 100)));
+      const getViewportCenterWorld = () => {
+        if (!mapShell) return { x: state.mapCanvas.width / 2, y: state.mapCanvas.height / 2 };
+        const currentScale = state.mapViewport.scale || 1;
+        return {
+          x: (mapShell.scrollLeft + (mapShell.clientWidth / 2)) / currentScale,
+          y: (mapShell.scrollTop + (mapShell.clientHeight / 2)) / currentScale
+        };
+      };
+      const syncZoomControls = (scaleValue) => {
+        const zoomPercent = scaleToPercent(scaleValue);
+        if (zoomRange) zoomRange.value = String(zoomPercent);
+        if (zoomLabel) zoomLabel.textContent = `${zoomPercent}%`;
+      };
 
       const applyMapScale = (nextScale, focalPoint) => {
         if (!mapShell) return;
-        const safeScale = Math.max(0.3, Number((nextScale || 1).toFixed(3)));
+        const safeScale = Math.max(0.25, Math.min(2, Number((nextScale || 1).toFixed(3))));
         state.mapViewport.scale = safeScale;
         mapWorld.style.transformOrigin = '0 0';
         mapWorld.style.transform = `scale(${safeScale})`;
+        syncZoomControls(safeScale);
         if (focalPoint && Number.isFinite(focalPoint.x) && Number.isFinite(focalPoint.y)) {
           state.mapViewport.centroidX = focalPoint.x;
           state.mapViewport.centroidY = focalPoint.y;
@@ -3903,6 +3972,13 @@
         applyMapScale(scale, centroid);
       };
       syncMapCanvasSize();
+      syncZoomControls(state.mapViewport.scale || 1);
+
+      mapShell?.addEventListener('scroll', () => {
+        const centerPoint = getViewportCenterWorld();
+        state.mapViewport.centroidX = centerPoint.x;
+        state.mapViewport.centroidY = centerPoint.y;
+      });
 
       const closePopup = () => {
         const popup = document.getElementById('mapPopup');
@@ -4148,6 +4224,39 @@
       };
       mapWorld.addEventListener('dblclick', advanceZoomScale);
       mapCanvas.addEventListener('dblclick', advanceZoomScale);
+      mapShell?.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const rect = mapCanvas.getBoundingClientRect();
+        const currentScale = state.mapViewport.scale || 1;
+        const currentPercent = scaleToPercent(currentScale);
+        const nextPercent = currentPercent + (event.deltaY < 0 ? ZOOM_STEP_PERCENT : -ZOOM_STEP_PERCENT);
+        const worldX = (event.clientX - rect.left + mapShell.scrollLeft) / currentScale;
+        const worldY = (event.clientY - rect.top + mapShell.scrollTop) / currentScale;
+        applyMapScale(percentToScale(nextPercent), {
+          x: worldX,
+          y: worldY,
+          pointerX: event.clientX - rect.left,
+          pointerY: event.clientY - rect.top
+        });
+      }, { passive: false });
+
+      zoomButtons.forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          const delta = Number(btn.dataset.mapZoomStep || 0);
+          const currentPercent = scaleToPercent(state.mapViewport.scale || 1);
+          const nextPercent = currentPercent + delta;
+          const centerPoint = getViewportCenterWorld();
+          applyMapScale(percentToScale(nextPercent), centerPoint);
+        });
+      });
+
+      zoomRange?.addEventListener('input', () => {
+        const nextPercent = Number(zoomRange.value || 100);
+        const centerPoint = getViewportCenterWorld();
+        applyMapScale(percentToScale(nextPercent), centerPoint);
+      });
 
       window.addEventListener('resize', syncMapCanvasSize, { once: true });
     }
