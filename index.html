@@ -4031,7 +4031,8 @@
         });
       });
 
-      mapWorld.addEventListener('click', (event) => {
+      mapWorld.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
         event.stopPropagation();
         if (!mapShell) return;
         const rect = mapCanvas.getBoundingClientRect();
