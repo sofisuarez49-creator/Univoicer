@@ -3311,7 +3311,13 @@
     }
 
     function saveUniverseNodes() {
-      localStorage.setItem(UNIVERSES_STORAGE_KEY, JSON.stringify(state.universeNodes));
+      const storageSafeNodes = state.universeNodes.map((node) => ({
+        id: node.id,
+        name: node.name,
+        cover: node.cover,
+        shape: node.shape
+      }));
+      localStorage.setItem(UNIVERSES_STORAGE_KEY, JSON.stringify(storageSafeNodes));
       scheduleCloudSync();
     }
 
@@ -3547,7 +3553,12 @@
         try {
           await firebaseDb.ref(CLOUD_STORAGE_PATH).set({
             updatedAt: Date.now(),
-            universeNodes: state.universeNodes,
+            universeNodes: state.universeNodes.map((node) => ({
+              id: node.id,
+              name: node.name,
+              cover: node.cover,
+              shape: node.shape
+            })),
             videos: VIDEOS,
             collectionModel,
             blockedCharactersByActor: state.blockedCharactersByActor
@@ -3725,6 +3736,36 @@
       state.mapCanvas.height = Math.max(minHeight, maxY);
     }
 
+    function applyDeterministicUniverseLayout(nodes) {
+      if (!Array.isArray(nodes) || !nodes.length) return;
+      const orderedNodes = [...nodes].sort((a, b) => {
+        const nameCompare = a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+        if (nameCompare !== 0) return nameCompare;
+        return hashCode(a.id || a.name) - hashCode(b.id || b.name);
+      });
+      const centerX = Math.round(state.mapCanvas.width / 2);
+      const centerY = Math.round(state.mapCanvas.height / 2);
+      const radiusStep = 230;
+      const baseSlots = 6;
+
+      orderedNodes.forEach((node, index) => {
+        let ring = 0;
+        let consumed = 0;
+        let ringSlots = baseSlots;
+        while (index >= consumed + ringSlots) {
+          consumed += ringSlots;
+          ring += 1;
+          ringSlots = baseSlots + (ring * 4);
+        }
+        const positionInRing = index - consumed;
+        const angleOffset = (hashCode(node.name || node.id || String(index)) % 360) * (Math.PI / 180);
+        const angle = ((Math.PI * 2 * positionInRing) / ringSlots) + angleOffset;
+        const radius = ring === 0 ? 0 : ring * radiusStep;
+        node.x = Math.round(centerX + Math.cos(angle) * radius);
+        node.y = Math.round(centerY + Math.sin(angle) * radius);
+      });
+    }
+
     function ensureUniverseNodes() {
       const universeMap = groupByUniverse();
       const specialUniverseKey = normalizeUniverseName(SPECIAL_UNASSIGNED_UNIVERSE);
@@ -3749,56 +3790,19 @@
 
       const existingByName = new Map(state.universeNodes.map(node => [normalizeUniverseName(node.name), node]));
 
-      if (!state.universeNodes.length && names.length) {
-        const firstName = names[0];
-        const firstSeed = hashCode(firstName);
-        state.universeNodes.push({
-          id: cssSafe(firstName),
-          name: firstName,
-          cover: getSafeUniverseCover(firstName, getUniverseCover(universeMap[normalizeUniverseName(firstName)]?.videos || [])),
-          x: Math.round(state.mapCanvas.width / 2),
-          y: Math.round(state.mapCanvas.height / 2),
-          neighbors: [],
-          shape: createNodeShape(firstSeed)
-        });
-      }
-
       names.forEach((name) => {
         const normalized = normalizeUniverseName(name);
         if (existingByName.has(normalized) || state.universeNodes.some(node => normalizeUniverseName(node.name) === normalized)) return;
         const seed = hashCode(name);
-        let placement = findPlacementForNode(state.universeNodes, state.mapCanvas, seed);
-        let safety = 0;
-        while (!placement && safety < 5) {
-          state.mapCanvas.width += 360;
-          state.mapCanvas.height += 240;
-          placement = findPlacementForNode(state.universeNodes, state.mapCanvas, seed + safety);
-          safety += 1;
-        }
-        const fallbackX = state.mapCanvas.width - 180 - (seed % 120);
-        const fallbackY = state.mapCanvas.height - 180 - ((seed >> 3) % 120);
-        const point = placement || {
-          x: Math.max(160, fallbackX),
-          y: Math.max(160, fallbackY),
-          anchorId: state.universeNodes[0]?.id
-        };
-
         state.universeNodes.push({
           id: cssSafe(name),
           name,
           cover: getSafeUniverseCover(name, getUniverseCover(universeMap[normalizeUniverseName(name)]?.videos || [])),
-          x: point.x,
-          y: point.y,
-          neighbors: point.anchorId ? [point.anchorId] : [],
+          x: 0,
+          y: 0,
+          neighbors: [],
           shape: createNodeShape(seed)
         });
-
-        if (point.anchorId) {
-          const anchor = state.universeNodes.find(node => node.id === point.anchorId);
-          if (anchor && !anchor.neighbors.includes(cssSafe(name))) {
-            anchor.neighbors.push(cssSafe(name));
-          }
-        }
       });
       state.universeNodes.forEach(node => {
         const universeData = universeMap[normalizeUniverseName(node.name)];
@@ -3808,6 +3812,8 @@
           node.cover = getSafeUniverseCover(node.name, '');
         }
       });
+      recalculateMapCanvasSize(window.innerWidth, window.innerHeight);
+      applyDeterministicUniverseLayout(state.universeNodes);
       saveUniverseNodes();
     }
 
