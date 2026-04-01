@@ -4007,13 +4007,102 @@
         });
       };
 
+      const dragState = {
+        activeNodeId: '',
+        pointerId: null,
+        offsetX: 0,
+        offsetY: 0,
+        startClientX: 0,
+        startClientY: 0,
+        moved: false
+      };
+      const DRAG_OPEN_THRESHOLD = 8;
+      const toWorldPoint = (event) => {
+        const rect = mapCanvas.getBoundingClientRect();
+        const scale = state.mapViewport.scale || 1;
+        return {
+          x: (event.clientX - rect.left + mapShell.scrollLeft) / scale,
+          y: (event.clientY - rect.top + mapShell.scrollTop) / scale
+        };
+      };
+      const resetDragState = () => {
+        dragState.activeNodeId = '';
+        dragState.pointerId = null;
+        dragState.offsetX = 0;
+        dragState.offsetY = 0;
+        dragState.startClientX = 0;
+        dragState.startClientY = 0;
+        dragState.moved = false;
+      };
+
       viewMap.querySelectorAll('.universe-node').forEach(nodeEl => {
         const coverEl = nodeEl.querySelector('.universe-cover');
         coverEl?.addEventListener('error', () => {
           coverEl.classList.add('is-broken');
           coverEl.src = getSafeUniverseCover(nodeEl.dataset.open, '');
         });
+        nodeEl.addEventListener('pointerdown', (event) => {
+          if (event.button !== 0) return;
+          if (!mapShell) return;
+          const nodeId = nodeEl.dataset.nodeId || '';
+          const node = state.universeNodes.find(item => item.id === nodeId);
+          if (!node) return;
+          event.preventDefault();
+          event.stopPropagation();
+          dragState.activeNodeId = node.id;
+          dragState.pointerId = event.pointerId;
+          dragState.startClientX = event.clientX;
+          dragState.startClientY = event.clientY;
+          dragState.moved = false;
+          const worldPoint = toWorldPoint(event);
+          dragState.offsetX = worldPoint.x - node.x;
+          dragState.offsetY = worldPoint.y - node.y;
+          nodeEl.dataset.dragMoved = '0';
+          nodeEl.setPointerCapture(event.pointerId);
+        });
+        nodeEl.addEventListener('pointermove', (event) => {
+          if (dragState.pointerId !== event.pointerId) return;
+          if (!dragState.activeNodeId) return;
+          if (!mapShell) return;
+          const node = state.universeNodes.find(item => item.id === dragState.activeNodeId);
+          if (!node) return;
+          event.preventDefault();
+          const worldPoint = toWorldPoint(event);
+          const rawX = worldPoint.x - dragState.offsetX;
+          const rawY = worldPoint.y - dragState.offsetY;
+          const boundedX = Math.max(NODE_HALF_WIDTH, Math.min(Math.round(rawX), state.mapCanvas.width - NODE_HALF_WIDTH));
+          const boundedY = Math.max(NODE_HALF_HEIGHT, Math.min(Math.round(rawY), state.mapCanvas.height - NODE_HALF_HEIGHT));
+          node.x = boundedX;
+          node.y = boundedY;
+          nodeEl.style.left = `${boundedX - NODE_HALF_WIDTH}px`;
+          nodeEl.style.top = `${boundedY - NODE_HALF_HEIGHT}px`;
+          const movedDistance = Math.hypot(event.clientX - dragState.startClientX, event.clientY - dragState.startClientY);
+          if (!dragState.moved && movedDistance >= DRAG_OPEN_THRESHOLD) {
+            dragState.moved = true;
+            nodeEl.dataset.dragMoved = '1';
+          }
+        });
+        const finishDrag = (event) => {
+          if (dragState.pointerId !== event.pointerId) return;
+          if (!dragState.activeNodeId) return;
+          if (nodeEl.hasPointerCapture(event.pointerId)) {
+            nodeEl.releasePointerCapture(event.pointerId);
+          }
+          const didMove = dragState.moved;
+          resetDragState();
+          if (!didMove) return;
+          saveUniverseNodes();
+          syncMapCanvasSize();
+        };
+        nodeEl.addEventListener('pointerup', finishDrag);
+        nodeEl.addEventListener('pointercancel', finishDrag);
         nodeEl.addEventListener('click', (event) => {
+          if (nodeEl.dataset.dragMoved === '1') {
+            nodeEl.dataset.dragMoved = '0';
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
           event.stopPropagation();
           state.universe = nodeEl.dataset.open;
           state.selectedVideoId = null;
