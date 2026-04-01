@@ -1876,8 +1876,8 @@
     .character-hero {
       border-bottom: 1px solid rgba(111, 180, 255, .28);
       padding-bottom: 20px;
-      align-items: center;
-      grid-template-columns: 160px minmax(0, 1fr);
+      align-items: start;
+      grid-template-columns: 160px minmax(0, 1fr) auto;
       gap: 24px;
     }
     .character-hero__avatar {
@@ -1900,14 +1900,9 @@
       margin-bottom: 0;
     }
     .character-hero__badges {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display: grid;
+      gap: 10px;
       margin-bottom: 6px;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overscroll-behavior-x: contain;
-      scrollbar-width: thin;
       min-width: 0;
       padding-bottom: 2px;
     }
@@ -2639,6 +2634,59 @@
       opacity: .72;
       transform: scale(1.02);
     }
+    .character-hero__actions {
+      display: grid;
+      gap: 8px;
+      align-self: start;
+      justify-items: end;
+    }
+    .character-hero__icon-btn {
+      width: 48px;
+      min-width: 48px;
+      height: 48px;
+      min-height: 48px;
+      padding: 0;
+      font-size: 1.35rem;
+      display: inline-grid;
+      place-items: center;
+      line-height: 1;
+    }
+    .character-inline-editor {
+      margin-top: 8px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(126, 216, 255, .4);
+      background: linear-gradient(165deg, rgba(12, 35, 68, .85), rgba(14, 23, 54, .9));
+      box-shadow: inset 0 1px 0 rgba(226, 244, 255, .14);
+      display: grid;
+      gap: 10px;
+    }
+    .character-inline-editor[hidden] { display: none; }
+    .character-inline-editor__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .character-inline-editor label {
+      display: grid;
+      gap: 4px;
+      font-size: .86rem;
+      color: #d4ebff;
+    }
+    .character-inline-editor input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(132, 208, 255, .5);
+      background: rgba(8, 20, 42, .85);
+      color: #ecf8ff;
+      padding: 8px 10px;
+      font: inherit;
+    }
+    .character-inline-editor__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
     .character-actor-card.locked h3 {
       font-size: 1.08rem;
       font-weight: 760;
@@ -2699,6 +2747,21 @@
         radial-gradient(circle at 50% 24%, rgba(255, 255, 255, .14), transparent 44%),
         linear-gradient(180deg, #596271 0%, #3a424e 55%, #262d38 100%);
     }
+    .profile-avatar--locked.has-custom-image {
+      border: 1px solid rgba(144, 214, 255, .55);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      padding: 0;
+      place-items: stretch;
+    }
+    .profile-avatar--locked.has-custom-image::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 9, 20, .58);
+      box-shadow: inset 0 0 0 1px rgba(210, 236, 255, .2);
+    }
     .profile-avatar--locked::before {
       content: '';
       position: absolute;
@@ -2723,6 +2786,12 @@
       text-transform: uppercase;
       padding: 5px 10px;
       backdrop-filter: blur(2px);
+    }
+    .profile-avatar--locked.has-custom-image .profile-avatar-lock-label {
+      margin: auto;
+      font-size: 1rem;
+      padding: 8px 14px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, .4);
     }
     .mock-row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     .mock-box {
@@ -2830,6 +2899,7 @@
         box-shadow: 0 8px 12px rgba(4, 10, 26, .32);
       }
       .character-hero {
+        grid-template-columns: 1fr;
         gap: 14px;
         padding-bottom: 16px;
       }
@@ -2839,6 +2909,10 @@
       }
       .character-hero__badges {
         gap: 8px;
+      }
+      .character-hero__actions {
+        justify-items: start;
+        grid-auto-flow: column;
       }
       .character-hero__badge {
         font-size: .86rem;
@@ -2951,7 +3025,9 @@
       draftCharacterFeedback: '',
       indicePreviewTimer: null,
       indicePreviewCharacter: '',
-      indicePreviewAnchor: null
+      indicePreviewAnchor: null,
+      showCharacterInlineEdit: false,
+      showCharacterInlineDelete: false
     };
     const UNIVERSES_STORAGE_KEY = 'universes_map_v1';
     const VIDEOS_STORAGE_KEY = 'videos_collection_v1';
@@ -5418,6 +5494,28 @@
       });
     }
 
+    function getCharacterLockedAvatarUrl(characterName) {
+      const normalized = normalizeName(characterName || '');
+      if (!normalized) return '';
+      const withCustomAvatar = VIDEOS.find((video) =>
+        normalizeName(video.personaje || '') === normalized && String(video.locked_avatar_url || '').trim()
+      );
+      return withCustomAvatar ? String(withCustomAvatar.locked_avatar_url || '').trim() : '';
+    }
+
+    function setCharacterLockedAvatarUrl(characterName, rawUrl) {
+      const normalized = normalizeName(characterName || '');
+      if (!normalized) return false;
+      const cleanUrl = String(rawUrl || '').trim();
+      const characterEntries = VIDEOS.filter(video => normalizeName(video.personaje || '') === normalized);
+      if (!characterEntries.length) return false;
+      characterEntries.forEach((video) => {
+        if (cleanUrl) video.locked_avatar_url = cleanUrl;
+        else delete video.locked_avatar_url;
+      });
+      return true;
+    }
+
     function renderIndiceView() {
       clearIndicePreviewTimer();
       removeIndicePreviewPopover();
@@ -5439,6 +5537,7 @@
           .sort((a, b) => a.actorName.localeCompare(b.actorName, 'es', { sensitivity: 'base' }));
 
         const isCharacterLocked = realVideos.length === 0;
+        const customLockedAvatarUrl = getCharacterLockedAvatarUrl(focusedCharacter);
         // Imagen de portada (si no hay videos reproducibles se muestra estado bloqueado)
         const profileImage = !isCharacterLocked && unlockedActors.length > 0 && unlockedActors[0].video
           ? getVideoThumbnail(unlockedActors[0].video)
@@ -5446,11 +5545,12 @@
         const profileAvatarMarkup = isCharacterLocked
           ? `
               <div
-                class="profile-avatar--locked"
+                class="profile-avatar--locked ${customLockedAvatarUrl ? 'has-custom-image' : ''}"
                 role="img"
                 aria-label="Avatar de ${focusedCharacter} en estado bloqueado, sin videos reproducibles disponibles"
+                ${customLockedAvatarUrl ? `style="background-image: url('${customLockedAvatarUrl.replace(/'/g, '%27')}')"` : ''}
               >
-                <span class="profile-avatar-lock-label">Bloqueado</span>
+                <span class="profile-avatar-lock-label">🔒 Bloqueado</span>
               </div>
             `
           : `<img src="${profileImage}" class="profile-avatar" alt="Avatar de ${focusedCharacter}" loading="lazy">`;
@@ -5462,21 +5562,51 @@
             </div>
             
             <div class="universe-hero character-hero">
-              <img src="${profileImage}" class="character-hero__avatar" alt="Avatar de ${focusedCharacter}">
+              ${profileAvatarMarkup}
               <div class="character-hero__content">
                 <h2 class="section-title detail-character character-hero__title">${focusedCharacter}</h2>
                 <div class="detail-meta character-hero__badges">
                   <span class="badge character-hero__badge ${rarityClass(rareza)}">🌟 ${rareza}</span>
-                  <span class="badge character-hero__badge character-hero__badge--universes rare-comun">🪐 Universos: ${universos.join(', ') || 'Ninguno'}</span>
+                  ${universos.map(universe => `<span class="badge character-hero__badge character-hero__badge--universes rare-comun">🪐 ${universe}</span>`).join('') || '<span class="badge character-hero__badge character-hero__badge--universes rare-comun">🪐 Ninguno</span>'}
                 </div>
-                <div class="actions">
-                  <button id="editCharacterBtn" class="neon-btn neon-btn--primary toon-btn toon-btn--primary">✏️ Editar Perfil Completo</button>
-                  <button id="deleteCharacterBtn" class="neon-btn toon-btn toon-btn--danger">🗑️ Eliminar Personaje</button>
-                </div>
+              </div>
+              <div class="character-hero__actions">
+                <button id="editCharacterBtn" class="neon-btn neon-btn--primary toon-btn toon-btn--primary character-hero__icon-btn" title="Editar personaje" aria-label="Editar personaje">✏️</button>
+                <button id="deleteCharacterBtn" class="neon-btn toon-btn toon-btn--danger character-hero__icon-btn" title="Eliminar personaje" aria-label="Eliminar personaje">🗑️</button>
               </div>
             </div>
 
             <p id="indiceCharacterFeedback" class="inline-feedback character-feedback" aria-live="polite"></p>
+            <form id="characterInlineEditForm" class="character-inline-editor" ${state.showCharacterInlineEdit ? '' : 'hidden'}>
+              <div class="character-inline-editor__grid">
+                <label>Nombre del personaje
+                  <input type="text" name="characterName" value="${focusedCharacter}">
+                </label>
+                <label>Rareza
+                  <input type="text" name="characterRarity" value="${rareza}" placeholder="Común, Raro, Épico o Legendario">
+                </label>
+                <label>Actores (separados por coma)
+                  <input type="text" name="characterActors" value="${actorCards.map(a => a.actorName).join(', ')}">
+                </label>
+                <label>Universos (separados por coma)
+                  <input type="text" name="characterUniverses" value="${universos.join(', ')}">
+                </label>
+                <label>Avatar bloqueado (URL opcional)
+                  <input type="url" name="lockedAvatarUrl" value="${customLockedAvatarUrl}" placeholder="https://...">
+                </label>
+              </div>
+              <div class="character-inline-editor__actions">
+                <button type="submit" class="neon-btn neon-btn--primary">Guardar cambios</button>
+                <button type="button" id="cancelCharacterEdit" class="neon-btn">Cancelar</button>
+              </div>
+            </form>
+            <section id="characterInlineDeletePanel" class="character-inline-editor" ${state.showCharacterInlineDelete ? '' : 'hidden'}>
+              <p style="margin:0;">¿Seguro que deseas eliminar al personaje <strong>${focusedCharacter}</strong> por completo?</p>
+              <div class="character-inline-editor__actions">
+                <button type="button" id="confirmDeleteCharacterBtn" class="neon-btn toon-btn toon-btn--danger">Confirmar eliminación</button>
+                <button type="button" id="cancelDeleteCharacterBtn" class="neon-btn">Cancelar</button>
+              </div>
+            </section>
 
             <article class="profile-section">
               <h4 class="profile-section__title">🎙️ Actores de doblaje asignados (${actorCards.length})</h4>
@@ -5513,22 +5643,28 @@
 
         // EDICIÓN AVANZADA
         document.getElementById('editCharacterBtn')?.addEventListener('click', () => {
-          const newName = prompt('Paso 1/4 - Nombre del personaje:', focusedCharacter);
-          if(newName === null || !newName.trim()) return;
+          state.showCharacterInlineEdit = !state.showCharacterInlineEdit;
+          state.showCharacterInlineDelete = false;
+          renderIndiceView();
+        });
 
-          const newRarity = prompt('Paso 2/4 - Rareza (Común, Raro, Épico, Legendario):', rareza);
-          if(newRarity === null || !newRarity.trim()) return;
+        document.getElementById('cancelCharacterEdit')?.addEventListener('click', () => {
+          state.showCharacterInlineEdit = false;
+          renderIndiceView();
+        });
 
-          const currentActors = actorCards.map(a => a.actorName).join(', ');
-          const newActorsRaw = prompt('Paso 3/4 - Actores (separados por coma):', currentActors);
-          if(newActorsRaw === null) return;
+        document.getElementById('characterInlineEditForm')?.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+          const newName = String(formData.get('characterName') || '').trim();
+          const newRarity = String(formData.get('characterRarity') || '').trim();
+          const newActorsRaw = String(formData.get('characterActors') || '');
+          const newUniversesRaw = String(formData.get('characterUniverses') || '');
+          const lockedAvatarUrl = String(formData.get('lockedAvatarUrl') || '').trim();
+          if (!newName || !newRarity) return;
 
-          const currentUniverses = universos.join(', ');
-          const newUniversesRaw = prompt('Paso 4/4 - Universos (separados por coma):', currentUniverses);
-          if(newUniversesRaw === null) return;
-
-          const cleanName = newName.trim();
-          const cleanRarity = rarezasPermitidas(newRarity.trim());
+          const cleanName = newName;
+          const cleanRarity = rarezasPermitidas(newRarity);
           const newActorsList = newActorsRaw.split(',').map(s=>s.trim()).filter(Boolean);
           const newUniversesList = newUniversesRaw.split(',').map(s=>s.trim()).filter(Boolean);
 
@@ -5580,11 +5716,14 @@
                   actor_de_doblaje: actor,
                   url_youtube: '',
                   rareza: cleanRarity,
-                  thumbnail: createPlaceholderCover(cleanName)
+                  thumbnail: createPlaceholderCover(cleanName),
+                  locked_avatar_url: lockedAvatarUrl
               });
               blockCharacterForActor(actor, cleanName);
           });
 
+          setCharacterLockedAvatarUrl(cleanName, lockedAvatarUrl);
+          state.showCharacterInlineEdit = false;
           state.indiceCharacterFocus = cleanName;
           saveBlockedCharacters();
           saveVideos();
@@ -5594,7 +5733,17 @@
 
         // ELIMINAR PERSONAJE
         document.getElementById('deleteCharacterBtn')?.addEventListener('click', () => {
-          if(!confirm(`¿Seguro que deseas eliminar al personaje "${focusedCharacter}" por completo?`)) return;
+          state.showCharacterInlineDelete = !state.showCharacterInlineDelete;
+          state.showCharacterInlineEdit = false;
+          renderIndiceView();
+        });
+
+        document.getElementById('cancelDeleteCharacterBtn')?.addEventListener('click', () => {
+          state.showCharacterInlineDelete = false;
+          renderIndiceView();
+        });
+
+        document.getElementById('confirmDeleteCharacterBtn')?.addEventListener('click', () => {
           for (let i = VIDEOS.length - 1; i >= 0; i--) {
               if (normalizeName(VIDEOS[i].personaje) === normalizeName(focusedCharacter)) {
                   VIDEOS.splice(i, 1);
@@ -5603,6 +5752,8 @@
           Object.keys(state.blockedCharactersByActor).forEach(actorKey => {
               state.blockedCharactersByActor[actorKey] = state.blockedCharactersByActor[actorKey].filter(c => normalizeName(c) !== normalizeName(focusedCharacter));
           });
+          state.showCharacterInlineDelete = false;
+          state.showCharacterInlineEdit = false;
           state.indiceCharacterFocus = null;
           saveBlockedCharacters();
           saveVideos();
