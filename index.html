@@ -4097,7 +4097,8 @@
         });
       });
 
-      mapWorld.addEventListener('click', (event) => {
+      mapWorld.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
         event.stopPropagation();
         if (dragState.active || dragState.moved) return;
         if (!mapShell) return;
