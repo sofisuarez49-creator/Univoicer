@@ -406,6 +406,47 @@
       scroll-behavior: smooth;
     }
 
+    .map-zoom-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 8;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(120, 196, 255, .55);
+      background: linear-gradient(165deg, rgba(8, 22, 46, .96), rgba(14, 36, 70, .94));
+      box-shadow: 0 8px 22px rgba(2, 7, 20, .45), inset 0 0 0 1px rgba(173, 221, 255, .1);
+      backdrop-filter: blur(6px);
+    }
+
+    .map-zoom-controls button {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      padding: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .map-zoom-controls input[type="range"] {
+      width: clamp(110px, 10vw, 140px);
+      accent-color: var(--accent);
+    }
+
+    .map-zoom-value {
+      min-width: 46px;
+      text-align: right;
+      font-size: .84rem;
+      font-weight: 800;
+      color: #d6f8ff;
+    }
+
     #universeMapCanvas {
       position: relative;
       min-width: 100%;
@@ -459,58 +500,43 @@
       z-index: 2;
     }
 
-    .map-scroll-controls {
+    .map-controls {
       position: absolute;
-      inset: auto 12px 12px auto;
-      z-index: 9;
-      display: grid;
+      right: 14px;
+      bottom: 14px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
       gap: 8px;
-      width: min(320px, calc(100% - 24px));
-      pointer-events: none;
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(132, 194, 255, .48);
+      background: rgba(8, 15, 34, .86);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 22px rgba(1, 8, 24, .52);
     }
 
-    .map-scroll-controls[hidden] {
-      display: none;
+    .map-control-btn {
+      min-width: 36px;
+      min-height: 36px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 10px;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .map-scroll-slider {
-      appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(193, 226, 255, .25);
-      box-shadow: inset 0 0 0 1px rgba(174, 219, 255, .2);
-      pointer-events: auto;
-      opacity: .9;
+    .map-control-btn[data-role="reset"] {
+      font-size: 17px;
     }
 
-    .map-scroll-slider::-webkit-slider-thumb {
-      appearance: none;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      border: 1px solid rgba(205, 239, 255, .88);
-      background: #9ad9ff;
-      box-shadow: 0 0 0 3px rgba(40, 137, 201, .25);
-      cursor: pointer;
-    }
-
-    .map-scroll-slider::-moz-range-thumb {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      border: 1px solid rgba(205, 239, 255, .88);
-      background: #9ad9ff;
-      box-shadow: 0 0 0 3px rgba(40, 137, 201, .25);
-      cursor: pointer;
-    }
-
-    .map-scroll-slider--vertical {
-      width: 6px;
-      height: min(240px, 42vh);
-      justify-self: end;
-      writing-mode: vertical-lr;
-      direction: rtl;
+    .map-zoom-slider {
+      width: 120px;
+      accent-color: #2bf7ff;
     }
 
     /* --- INICIO NUEVO DISEÑO ORBES ESTELARES --- */
@@ -3893,6 +3919,12 @@
       }).join('');
       viewMap.innerHTML = `
         <div class="universe-map-shell">
+          <div class="map-zoom-controls" aria-label="Controles de zoom del mapa">
+            <button type="button" class="map-zoom-btn" data-map-zoom-step="-25" aria-label="Reducir zoom">-</button>
+            <input type="range" class="map-zoom-range" min="25" max="200" step="25" value="100" aria-label="Nivel de zoom del mapa">
+            <span class="map-zoom-value" data-map-zoom-label>100%</span>
+            <button type="button" class="map-zoom-btn" data-map-zoom-step="25" aria-label="Aumentar zoom">+</button>
+          </div>
           <div id="universeMapCanvas" aria-label="Mapa de universos explorable">
             <div class="map-nebula-layer" aria-hidden="true"></div>
             <div class="map-stars-layer" aria-hidden="true"></div>
@@ -3900,11 +3932,13 @@
               ${nodesMarkup}
             </div>
           </div>
-          <div class="map-scroll-controls" id="mapScrollControls" hidden>
-            <input type="range" class="map-scroll-slider map-scroll-slider--horizontal" id="mapScrollX" min="0" max="0" value="0" step="1" aria-label="Desplazamiento horizontal del mapa">
-            <input type="range" class="map-scroll-slider map-scroll-slider--vertical" id="mapScrollY" min="0" max="0" value="0" step="1" aria-label="Desplazamiento vertical del mapa">
+          <div class="map-controls" aria-label="Controles del mapa">
+            <button type="button" class="map-control-btn" data-role="zoom-out" aria-label="Alejar">−</button>
+            <input type="range" class="map-zoom-slider" data-role="zoom-slider" min="0.3" max="1.3" step="0.01" aria-label="Nivel de zoom">
+            <button type="button" class="map-control-btn" data-role="zoom-in" aria-label="Acercar">+</button>
+            <button type="button" class="map-control-btn" data-role="reset" aria-label="Restablecer vista">⌂</button>
           </div>
-        </div>
+        </section>
       `;
 
       const mapCanvas = document.getElementById('universeMapCanvas');
@@ -3912,35 +3946,51 @@
       if (!mapCanvas || !mapWorld) return;
 
       const mapShell = viewMap.querySelector('.universe-map-shell');
-      const mapScrollControls = document.getElementById('mapScrollControls');
-      const mapScrollX = document.getElementById('mapScrollX');
-      const mapScrollY = document.getElementById('mapScrollY');
+      const zoomRange = viewMap.querySelector('.map-zoom-range');
+      const zoomLabel = viewMap.querySelector('[data-map-zoom-label]');
+      const zoomButtons = Array.from(viewMap.querySelectorAll('.map-zoom-btn'));
+      const MIN_ZOOM_PERCENT = 25;
+      const MAX_ZOOM_PERCENT = 200;
+      const ZOOM_STEP_PERCENT = 25;
+      const percentToScale = (percent) => Math.max(MIN_ZOOM_PERCENT, Math.min(MAX_ZOOM_PERCENT, percent)) / 100;
+      const scaleToPercent = (scale) => Math.round(Math.max(MIN_ZOOM_PERCENT, Math.min(MAX_ZOOM_PERCENT, scale * 100)));
+      const getViewportCenterWorld = () => {
+        if (!mapShell) return { x: state.mapCanvas.width / 2, y: state.mapCanvas.height / 2 };
+        const currentScale = state.mapViewport.scale || 1;
+        return {
+          x: (mapShell.scrollLeft + (mapShell.clientWidth / 2)) / currentScale,
+          y: (mapShell.scrollTop + (mapShell.clientHeight / 2)) / currentScale
+        };
+      };
+      const syncZoomControls = (scaleValue) => {
+        const zoomPercent = scaleToPercent(scaleValue);
+        if (zoomRange) zoomRange.value = String(zoomPercent);
+        if (zoomLabel) zoomLabel.textContent = `${zoomPercent}%`;
+      };
 
-      const clampScrollValue = (value, max) => Math.max(0, Math.min(max, Math.round(value)));
-      const refreshScrollSliders = () => {
-        if (!mapShell || !mapScrollControls || !mapScrollX || !mapScrollY) return;
-        const maxX = Math.max(0, Math.round(mapShell.scrollWidth - mapShell.clientWidth));
-        const maxY = Math.max(0, Math.round(mapShell.scrollHeight - mapShell.clientHeight));
-        const hasOverflow = maxX > 0 || maxY > 0;
-        const shouldShowControls = (state.mapViewport.scale > 1) || hasOverflow;
-
-        mapScrollControls.hidden = !shouldShowControls;
-
-        mapScrollX.max = String(maxX);
-        mapScrollX.value = String(clampScrollValue(mapShell.scrollLeft, maxX));
-        mapScrollX.disabled = maxX <= 0;
-
-        mapScrollY.max = String(maxY);
-        mapScrollY.value = String(clampScrollValue(mapShell.scrollTop, maxY));
-        mapScrollY.disabled = maxY <= 0;
+      const MIN_MAP_ZOOM = 0.25;
+      const MAX_MAP_ZOOM = 2.0;
+      const WHEEL_ZOOM_FACTOR = 1.1;
+      const syncMapZoomDisplay = (scaleValue) => {
+        const percentage = `${Math.round(scaleValue * 100)}%`;
+        const zoomPercentEl = viewMap.querySelector('[data-map-zoom-percent], #mapZoomPercent');
+        if (zoomPercentEl) zoomPercentEl.textContent = percentage;
+        const zoomRangeEl = viewMap.querySelector('[data-map-zoom-range], #mapZoomRange');
+        if (zoomRangeEl instanceof HTMLInputElement) {
+          zoomRangeEl.min = String(MIN_MAP_ZOOM);
+          zoomRangeEl.max = String(MAX_MAP_ZOOM);
+          zoomRangeEl.step = zoomRangeEl.step || '0.01';
+          zoomRangeEl.value = String(scaleValue);
+        }
       };
 
       const applyMapScale = (nextScale, focalPoint) => {
         if (!mapShell) return;
-        const safeScale = Math.max(0.3, Number((nextScale || 1).toFixed(3)));
+        const safeScale = Math.max(MIN_MAP_ZOOM, Math.min(MAX_MAP_ZOOM, Number((nextScale || 1).toFixed(3))));
         state.mapViewport.scale = safeScale;
         mapWorld.style.transformOrigin = '0 0';
         mapWorld.style.transform = `scale(${safeScale})`;
+        syncMapZoomDisplay(safeScale);
         if (focalPoint && Number.isFinite(focalPoint.x) && Number.isFinite(focalPoint.y)) {
           state.mapViewport.centroidX = focalPoint.x;
           state.mapViewport.centroidY = focalPoint.y;
@@ -3960,13 +4010,8 @@
         refreshScrollSliders();
       };
 
-      const syncMapCanvasSize = () => {
+      const fitMapToViewport = () => {
         if (!mapShell) return;
-        recalculateMapCanvasSize(mapShell.clientWidth, mapShell.clientHeight);
-        mapCanvas.style.width = `${state.mapCanvas.width}px`;
-        mapCanvas.style.height = `${state.mapCanvas.height}px`;
-        mapWorld.style.width = `${state.mapCanvas.width}px`;
-        mapWorld.style.height = `${state.mapCanvas.height}px`;
         const bounds = getUniverseBounds();
         if (!bounds) {
           applyMapScale(1, {
@@ -3985,7 +4030,31 @@
         applyMapScale(scale, centroid);
         refreshScrollSliders();
       };
-      syncMapCanvasSize();
+
+      const syncMapCanvasSize = ({ fitToViewport = false } = {}) => {
+        if (!mapShell) return;
+        recalculateMapCanvasSize(mapShell.clientWidth, mapShell.clientHeight);
+        mapCanvas.style.width = `${state.mapCanvas.width}px`;
+        mapCanvas.style.height = `${state.mapCanvas.height}px`;
+        mapWorld.style.width = `${state.mapCanvas.width}px`;
+        mapWorld.style.height = `${state.mapCanvas.height}px`;
+        if (fitToViewport) {
+          fitMapToViewport();
+          return;
+        }
+        applyMapScale(state.mapViewport.scale || 1);
+      };
+      syncMapCanvasSize({ fitToViewport: true });
+
+      const zoomInButton = viewMap.querySelector('[data-role="zoom-in"]');
+      const zoomOutButton = viewMap.querySelector('[data-role="zoom-out"]');
+      const zoomSlider = viewMap.querySelector('[data-role="zoom-slider"]');
+      const resetViewButton = viewMap.querySelector('[data-role="reset"]');
+      const syncZoomSlider = () => {
+        if (!(zoomSlider instanceof HTMLInputElement)) return;
+        zoomSlider.value = String(state.mapViewport.scale || 1);
+      };
+      syncZoomSlider();
 
       mapScrollX?.addEventListener('input', (event) => {
         if (!mapShell) return;
@@ -4111,6 +4180,14 @@
         startClientY: 0,
         moved: false
       };
+      const panState = {
+        isPanning: false,
+        pointerId: null,
+        startX: 0,
+        startY: 0,
+        startScrollLeft: 0,
+        startScrollTop: 0
+      };
       const DRAG_OPEN_THRESHOLD = 8;
       const toWorldPoint = (event) => {
         const rect = mapCanvas.getBoundingClientRect();
@@ -4129,6 +4206,56 @@
         dragState.startClientY = 0;
         dragState.moved = false;
       };
+      const updatePanCursor = () => {
+        const canPan = (state.mapViewport.scale || 1) > 1;
+        mapCanvas.style.cursor = panState.isPanning ? 'grabbing' : (canPan ? 'grab' : '');
+      };
+      const resetPanState = () => {
+        panState.isPanning = false;
+        panState.pointerId = null;
+        panState.startX = 0;
+        panState.startY = 0;
+        panState.startScrollLeft = 0;
+        panState.startScrollTop = 0;
+        updatePanCursor();
+      };
+      updatePanCursor();
+
+      mapCanvas.addEventListener('pointerdown', (event) => {
+        if (!mapShell) return;
+        if (event.button !== 0) return;
+        if ((state.mapViewport.scale || 1) <= 1) return;
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest('.universe-node, .map-popup, .map-controls, .map-zoom-controls')) return;
+        panState.isPanning = true;
+        panState.pointerId = event.pointerId;
+        panState.startX = event.clientX;
+        panState.startY = event.clientY;
+        panState.startScrollLeft = mapShell.scrollLeft;
+        panState.startScrollTop = mapShell.scrollTop;
+        mapCanvas.setPointerCapture(event.pointerId);
+        updatePanCursor();
+        event.preventDefault();
+      });
+      mapCanvas.addEventListener('pointermove', (event) => {
+        if (!mapShell) return;
+        if (!panState.isPanning || panState.pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - panState.startX;
+        const deltaY = event.clientY - panState.startY;
+        mapShell.scrollLeft = Math.max(0, panState.startScrollLeft - deltaX);
+        mapShell.scrollTop = Math.max(0, panState.startScrollTop - deltaY);
+        event.preventDefault();
+      });
+      const finishPan = (event) => {
+        if (panState.pointerId !== event.pointerId) return;
+        if (mapCanvas.hasPointerCapture(event.pointerId)) {
+          mapCanvas.releasePointerCapture(event.pointerId);
+        }
+        resetPanState();
+      };
+      mapCanvas.addEventListener('pointerup', finishPan);
+      mapCanvas.addEventListener('pointercancel', finishPan);
 
       viewMap.querySelectorAll('.universe-node').forEach(nodeEl => {
         const coverEl = nodeEl.querySelector('.universe-cover');
@@ -4220,62 +4347,58 @@
         openPopupAt(worldX, worldY);
       });
 
-      const zoomSteps = [0.7, 0.85, 1, 1.15, 1.3];
-      const advanceZoomScale = (event) => {
+      const handleWheelZoom = (event) => {
         event.preventDefault();
         event.stopPropagation();
         if (!mapShell) return;
+        if (event.deltaY === 0) return;
         const rect = mapCanvas.getBoundingClientRect();
         const scale = state.mapViewport.scale || 1;
         const worldX = (event.clientX - rect.left + mapShell.scrollLeft) / scale;
         const worldY = (event.clientY - rect.top + mapShell.scrollTop) / scale;
-        const roundedScale = Number(scale.toFixed(2));
-        const currentIndex = zoomSteps.findIndex(step => Math.abs(step - roundedScale) < 0.02);
-        const nextScale = currentIndex === -1
-          ? zoomSteps[0]
-          : zoomSteps[(currentIndex + 1) % zoomSteps.length];
+        const direction = event.deltaY < 0 ? 1 : -1;
+        const nextScale = direction > 0
+          ? scale * WHEEL_ZOOM_FACTOR
+          : scale / WHEEL_ZOOM_FACTOR;
         applyMapScale(nextScale, {
           x: worldX,
           y: worldY,
           pointerX: event.clientX - rect.left,
           pointerY: event.clientY - rect.top
         });
-        refreshScrollSliders();
+        updatePanCursor();
+        syncZoomSlider();
       };
-      mapWorld.addEventListener('dblclick', advanceZoomScale);
-      mapCanvas.addEventListener('dblclick', advanceZoomScale);
-      mapShell?.addEventListener('wheel', (event) => {
-        if (!event.ctrlKey) {
-          requestAnimationFrame(refreshScrollSliders);
-          return;
-        }
-        event.preventDefault();
-        const direction = event.deltaY > 0 ? -1 : 1;
-        const rect = mapCanvas.getBoundingClientRect();
-        const scale = state.mapViewport.scale || 1;
-        const currentIndex = zoomSteps.findIndex(step => Math.abs(step - Number(scale.toFixed(2))) < 0.02);
-        const fallbackIndex = zoomSteps.reduce((bestIdx, step, idx) => {
-          if (Math.abs(step - scale) < Math.abs(zoomSteps[bestIdx] - scale)) return idx;
-          return bestIdx;
-        }, 0);
-        const startIndex = currentIndex === -1 ? fallbackIndex : currentIndex;
-        const nextIndex = Math.max(0, Math.min(zoomSteps.length - 1, startIndex + direction));
-        if (nextIndex === startIndex) {
-          refreshScrollSliders();
-          return;
-        }
-        const worldX = (event.clientX - rect.left + mapShell.scrollLeft) / scale;
-        const worldY = (event.clientY - rect.top + mapShell.scrollTop) / scale;
-        applyMapScale(zoomSteps[nextIndex], {
-          x: worldX,
-          y: worldY,
-          pointerX: event.clientX - rect.left,
-          pointerY: event.clientY - rect.top
-        });
-      }, { passive: false });
+      mapShell?.addEventListener('wheel', handleWheelZoom, { passive: false });
 
-      refreshScrollSliders();
-      window.addEventListener('resize', syncMapCanvasSize, { once: true });
+      zoomInButton?.addEventListener('click', (event) => {
+        event.preventDefault();
+        applyMapScale((state.mapViewport.scale || 1) + 0.05);
+        updatePanCursor();
+        syncZoomSlider();
+      });
+      zoomOutButton?.addEventListener('click', (event) => {
+        event.preventDefault();
+        applyMapScale((state.mapViewport.scale || 1) - 0.05);
+        updatePanCursor();
+        syncZoomSlider();
+      });
+      zoomSlider?.addEventListener('input', (event) => {
+        const nextScale = Number(event.target?.value || state.mapViewport.scale || 1);
+        applyMapScale(nextScale);
+        updatePanCursor();
+      });
+      resetViewButton?.addEventListener('click', (event) => {
+        event.preventDefault();
+        fitMapToViewport();
+        updatePanCursor();
+        syncZoomSlider();
+      });
+
+      window.addEventListener('resize', () => {
+        syncMapCanvasSize();
+        syncZoomSlider();
+      }, { once: true });
     }
 
     function renderInicioView() {
