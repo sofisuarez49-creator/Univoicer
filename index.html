@@ -4165,6 +4165,14 @@
         startClientY: 0,
         moved: false
       };
+      const panState = {
+        isPanning: false,
+        pointerId: null,
+        startX: 0,
+        startY: 0,
+        startScrollLeft: 0,
+        startScrollTop: 0
+      };
       const DRAG_OPEN_THRESHOLD = 8;
       const toWorldPoint = (event) => {
         const rect = mapCanvas.getBoundingClientRect();
@@ -4183,6 +4191,56 @@
         dragState.startClientY = 0;
         dragState.moved = false;
       };
+      const updatePanCursor = () => {
+        const canPan = (state.mapViewport.scale || 1) > 1;
+        mapCanvas.style.cursor = panState.isPanning ? 'grabbing' : (canPan ? 'grab' : '');
+      };
+      const resetPanState = () => {
+        panState.isPanning = false;
+        panState.pointerId = null;
+        panState.startX = 0;
+        panState.startY = 0;
+        panState.startScrollLeft = 0;
+        panState.startScrollTop = 0;
+        updatePanCursor();
+      };
+      updatePanCursor();
+
+      mapCanvas.addEventListener('pointerdown', (event) => {
+        if (!mapShell) return;
+        if (event.button !== 0) return;
+        if ((state.mapViewport.scale || 1) <= 1) return;
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest('.universe-node, .map-popup, .map-controls, .map-zoom-controls')) return;
+        panState.isPanning = true;
+        panState.pointerId = event.pointerId;
+        panState.startX = event.clientX;
+        panState.startY = event.clientY;
+        panState.startScrollLeft = mapShell.scrollLeft;
+        panState.startScrollTop = mapShell.scrollTop;
+        mapCanvas.setPointerCapture(event.pointerId);
+        updatePanCursor();
+        event.preventDefault();
+      });
+      mapCanvas.addEventListener('pointermove', (event) => {
+        if (!mapShell) return;
+        if (!panState.isPanning || panState.pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - panState.startX;
+        const deltaY = event.clientY - panState.startY;
+        mapShell.scrollLeft = Math.max(0, panState.startScrollLeft - deltaX);
+        mapShell.scrollTop = Math.max(0, panState.startScrollTop - deltaY);
+        event.preventDefault();
+      });
+      const finishPan = (event) => {
+        if (panState.pointerId !== event.pointerId) return;
+        if (mapCanvas.hasPointerCapture(event.pointerId)) {
+          mapCanvas.releasePointerCapture(event.pointerId);
+        }
+        resetPanState();
+      };
+      mapCanvas.addEventListener('pointerup', finishPan);
+      mapCanvas.addEventListener('pointercancel', finishPan);
 
       viewMap.querySelectorAll('.universe-node').forEach(nodeEl => {
         const coverEl = nodeEl.querySelector('.universe-cover');
@@ -4293,6 +4351,7 @@
           pointerX: event.clientX - rect.left,
           pointerY: event.clientY - rect.top
         });
+        updatePanCursor();
         syncZoomSlider();
       };
       mapShell?.addEventListener('wheel', handleWheelZoom, { passive: false });
@@ -4300,20 +4359,24 @@
       zoomInButton?.addEventListener('click', (event) => {
         event.preventDefault();
         applyMapScale((state.mapViewport.scale || 1) + 0.05);
+        updatePanCursor();
         syncZoomSlider();
       });
       zoomOutButton?.addEventListener('click', (event) => {
         event.preventDefault();
         applyMapScale((state.mapViewport.scale || 1) - 0.05);
+        updatePanCursor();
         syncZoomSlider();
       });
       zoomSlider?.addEventListener('input', (event) => {
         const nextScale = Number(event.target?.value || state.mapViewport.scale || 1);
         applyMapScale(nextScale);
+        updatePanCursor();
       });
       resetViewButton?.addEventListener('click', (event) => {
         event.preventDefault();
         fitMapToViewport();
+        updatePanCursor();
         syncZoomSlider();
       });
 
