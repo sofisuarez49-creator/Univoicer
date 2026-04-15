@@ -1307,6 +1307,8 @@
         success: patch.success !== undefined ? String(patch.success || '') : current.success
       };
       if (state.view === 'config') renderConfigView();
+      if (state.view === 'audioVoces' && category === 'voces') renderAudioCategoryView('voces');
+      if (state.view === 'audioFondos' && category === 'fondos') renderAudioCategoryView('fondos');
     }
 
     function validateAudioFile(file) {
@@ -1317,7 +1319,7 @@
       return '';
     }
 
-    async function uploadAudioFileForCategory(file, category) {
+    async function uploadAudioFileForCategory(file, category, displayName = '') {
       const error = validateAudioFile(file);
       if (error) throw new Error(error);
       if (!firebaseStorage) throw new Error('Storage no está inicializado.');
@@ -1339,7 +1341,7 @@
 
       return {
         id: uniqueId,
-        name: file.name,
+        name: String(displayName || '').trim() || file.name,
         path,
         url,
         contentType: file.type || 'audio/mpeg',
@@ -1348,14 +1350,14 @@
       };
     }
 
-    async function handleAudioLibraryFileSelected(event, category) {
+    async function handleAudioLibraryFileSelected(event, category, preferredName = '') {
       const file = event.target?.files?.[0];
       event.target.value = '';
       if (!file) return;
 
       setAudioUploadStatus(category, { loading: true, error: '', success: '' });
       try {
-        const metadata = await uploadAudioFileForCategory(file, category);
+        const metadata = await uploadAudioFileForCategory(file, category, preferredName);
         const current = Array.isArray(state.audioLibrary[category]) ? state.audioLibrary[category] : [];
         state.audioLibrary[category] = [metadata, ...current]
           .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
@@ -5833,8 +5835,8 @@
         <section class="mock-shell">
           <h2>Galería de audios</h2>
           <div class="mock-row">
-            <button class="neon-btn toon-btn" data-audio-folder="voces" style="min-height: 140px; min-width: 220px;">📁 VOCES</button>
-            <button class="neon-btn toon-btn" data-audio-folder="fondos" style="min-height: 140px; min-width: 220px;">📁 FONDOS</button>
+            <button class="neon-btn toon-btn" data-audio-folder="voces" style="min-height: 140px; min-width: 220px;">🎤 VOCES</button>
+            <button class="neon-btn toon-btn" data-audio-folder="fondos" style="min-height: 140px; min-width: 220px;">🎵 FONDOS</button>
           </div>
         </section>
       `;
@@ -5846,13 +5848,21 @@
     function renderAudioCategoryView(category) {
       const isVoces = category === 'voces';
       const title = isVoces ? 'VOCES' : 'FONDOS';
+      const addLabel = isVoces ? 'Agregar voces' : 'Agregar fondos';
       const targetView = isVoces ? viewAudioVoces : viewAudioFondos;
       const items = Array.isArray(state.audioLibrary?.[category]) ? state.audioLibrary[category] : [];
+      const status = state.uploadStatusByCategory?.[category] || { loading: false, error: '', success: '' };
 
       targetView.innerHTML = `
         <section class="mock-shell">
           <h2>${title}</h2>
           <p class="muted">Gestiona y reproduce tus audios cargados en la categoría ${title.toLowerCase()}.</p>
+          <div class="audio-upload-inline">
+            <input type="text" class="control-input" data-audio-name-input="${category}" placeholder="Nombre para mostrar (opcional)">
+            <button class="neon-btn toon-btn" data-audio-add-btn="${category}" ${status.loading ? 'disabled' : ''}>${status.loading ? 'Subiendo...' : addLabel}</button>
+            <input type="file" accept="audio/*" data-audio-file-input="${category}" hidden>
+          </div>
+          <p class="audio-library-feedback ${status.error ? 'is-error' : status.success ? 'is-success' : ''}" aria-live="polite">${escapeHtml(status.error || status.success || '')}</p>
           <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
         </section>
         <section class="panel">
@@ -5873,6 +5883,15 @@
         </section>
       `;
       targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
+      targetView.querySelector('[data-audio-add-btn]')?.addEventListener('click', () => {
+        targetView.querySelector('[data-audio-file-input]')?.click();
+      });
+      targetView.querySelector('[data-audio-file-input]')?.addEventListener('change', (event) => {
+        const nameInput = targetView.querySelector('[data-audio-name-input]');
+        const customName = String(nameInput?.value || '').trim();
+        if (nameInput) nameInput.value = '';
+        handleAudioLibraryFileSelected(event, category, customName);
+      });
     }
 
     function cssSafe(text) {
