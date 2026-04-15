@@ -70,13 +70,22 @@
       mapWorldFilter: 'universe',
       mapAbsorptionEffect: null,
       favoriteUniverses: new Set(),
-      showInteruniversalConnections: false
+      showInteruniversalConnections: false,
+      audioLibrary: {
+        voces: [],
+        fondos: []
+      },
+      uploadStatusByCategory: {
+        voces: { loading: false, error: '', success: '' },
+        fondos: { loading: false, error: '', success: '' }
+      }
     };
     const UNIVERSES_STORAGE_KEY = 'universes_map_v1';
     const VIDEOS_STORAGE_KEY = 'videos_collection_v1';
     const COLLECTION_MODEL_STORAGE_KEY = 'collection_model_v1';
     const MARATHON_STORAGE_KEY = 'marathon_state_v1';
     const BLOCKED_CHARACTERS_STORAGE_KEY = 'blocked_characters_by_actor_v1';
+    const AUDIO_LIBRARY_STORAGE_KEY = 'audio_library_v1';
     const UNIVERSE_MEMBERSHIPS_STORAGE_KEY = 'universe_memberships_v1';
     const UNIVERSES_UPDATED_AT_KEY = 'universes_updated_at_v1';
     const CLOUD_STORAGE_PATH = 'univoicerData/main';
@@ -91,12 +100,7 @@
     let firebaseDb = null;
     let firebaseStorage = null;
     let cloudSyncTimer = null;
-    let collectionModel = {
-      actors: [],
-      characters: [],
-      universes: [],
-      videos: []
-    };
+    let collectionModel = createEmptyCollectionModel();
 
     let marathonPlayer = null;
     let marathonPlayerReady = false;
@@ -108,6 +112,7 @@
     const navIndice = document.getElementById('navIndice');
     const navActores = document.getElementById('navActores');
     const navMaraton = document.getElementById('navMaraton');
+    const navGaleriaAudios = document.getElementById('navGaleriaAudios');
     const viewInicio = document.getElementById('viewInicio');
     const viewMap = document.getElementById('viewMap');
     const viewUniverse = document.getElementById('viewUniverse');
@@ -123,6 +128,9 @@
     const viewStats = document.getElementById('viewStats');
     const viewConfig = document.getElementById('viewConfig');
     const viewCharacterProfile = document.getElementById('viewCharacterProfile');
+    const viewAudioGallery = document.getElementById('viewAudioGallery');
+    const viewAudioVoces = document.getElementById('viewAudioVoces');
+    const viewAudioFondos = document.getElementById('viewAudioFondos');
 
     function rarityClass(rareza) {
       return `rare-${rareza.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
@@ -271,8 +279,73 @@
         characters: [],
         universes: [],
         videos: [],
-        worldMemberships: []
+        worldMemberships: [],
+        audioLibrary: createEmptyAudioLibrary()
       };
+    }
+
+    function createEmptyAudioLibrary() {
+      return {
+        voces: [],
+        fondos: []
+      };
+    }
+
+    function normalizeAudioTimestamp(value, fallback) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return new Date(numeric).toISOString();
+      }
+      const text = String(value || '').trim();
+      if (text) {
+        const parsed = Date.parse(text);
+        if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+      }
+      return fallback;
+    }
+
+    function normalizeAudioLibraryItem(rawItem, fallbackCategory, index) {
+      if (!rawItem || typeof rawItem !== 'object') return null;
+      const validCategory = rawItem.category === 'voces' || rawItem.category === 'fondos'
+        ? rawItem.category
+        : fallbackCategory;
+      const createdAt = normalizeAudioTimestamp(rawItem.createdAt, new Date().toISOString());
+      const updatedAt = normalizeAudioTimestamp(rawItem.updatedAt, createdAt);
+      const parsedDurationMs = Number(rawItem.durationMs);
+
+      return {
+        id: String(rawItem.id || `audio-${validCategory}-${Date.now()}-${index}`),
+        category: validCategory,
+        name: String(rawItem.name || '').trim(),
+        storagePath: String(rawItem.storagePath || '').trim(),
+        downloadURL: String(rawItem.downloadURL || '').trim(),
+        ...(Number.isFinite(parsedDurationMs) && parsedDurationMs >= 0 ? { durationMs: parsedDurationMs } : {}),
+        createdAt,
+        updatedAt
+      };
+    }
+
+    function normalizeAudioLibrary(rawAudioLibrary) {
+      const empty = createEmptyAudioLibrary();
+      if (!rawAudioLibrary || typeof rawAudioLibrary !== 'object') return empty;
+
+      const normalizeCategoryList = (rawList, fallbackCategory) => (
+        (Array.isArray(rawList) ? rawList : [])
+          .map((item, index) => normalizeAudioLibraryItem(item, fallbackCategory, index))
+          .filter(Boolean)
+      );
+
+      return {
+        voces: normalizeCategoryList(rawAudioLibrary.voces, 'voces'),
+        fondos: normalizeCategoryList(rawAudioLibrary.fondos, 'fondos')
+      };
+    }
+
+    function ensureCollectionModelAudioLibrary(model) {
+      if (!model || typeof model !== 'object') return createEmptyAudioLibrary();
+      const normalizedAudioLibrary = normalizeAudioLibrary(model.audioLibrary);
+      model.audioLibrary = normalizedAudioLibrary;
+      return normalizedAudioLibrary;
     }
 
     function parseModelFromStorage(rawModel) {
@@ -325,11 +398,13 @@
             }))
             .filter(item => item.worldUniverseId && item.parentUniverseId)
             .filter(item => rawUniverseIds.has(item.worldUniverseId) && rawUniverseIds.has(item.parentUniverseId))
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(rawModel.audioLibrary)
       };
     }
 
     function saveCollectionModel() {
+      ensureCollectionModelAudioLibrary(collectionModel);
       localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
       scheduleCloudSync();
     }
@@ -467,7 +542,8 @@
               parentUniverseId: String(item.parentUniverseId || '')
             }))
             .filter((item) => item.worldUniverseId && item.parentUniverseId)
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(baseModel.audioLibrary)
       };
 
       const actorMap = new Map(model.actors.map((actor) => [normalizeEntityName(actor.name), actor]));
@@ -1032,6 +1108,7 @@
 
     function syncCollectionModelWithVideos(preserveActorsFromModel = collectionModel) {
       const nextModel = migrateLegacyVideosToModel(VIDEOS);
+      nextModel.audioLibrary = normalizeAudioLibrary(preserveActorsFromModel?.audioLibrary);
       const actorNameToActor = new Map(
         (nextModel.actors || []).map((actor) => [normalizeEntityName(actor.name), actor])
       );
@@ -1181,13 +1258,131 @@
       buildAutoMarathonPlaylist();
     }
 
+
+    function normalizeAudioLibrary(rawAudioLibrary) {
+      const base = { voces: [], fondos: [] };
+      if (!rawAudioLibrary || typeof rawAudioLibrary !== 'object') return base;
+
+      const normalizeCategory = (value) => {
+        if (!Array.isArray(value)) return [];
+        return value
+          .filter(item => item && typeof item === 'object')
+          .map((item) => ({
+            id: String(item.id || `audio-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+            name: String(item.name || 'Archivo sin nombre'),
+            path: String(item.path || ''),
+            url: String(item.url || ''),
+            contentType: String(item.contentType || 'audio/mpeg'),
+            size: Number(item.size) || 0,
+            createdAt: Number(item.createdAt) || Date.now()
+          }));
+      };
+
+      return {
+        voces: normalizeCategory(rawAudioLibrary.voces),
+        fondos: normalizeCategory(rawAudioLibrary.fondos)
+      };
+    }
+
+    function loadAudioLibraryFromStorage() {
+      try {
+        const raw = localStorage.getItem(AUDIO_LIBRARY_STORAGE_KEY);
+        if (!raw) return normalizeAudioLibrary(null);
+        return normalizeAudioLibrary(JSON.parse(raw));
+      } catch (_) {
+        return normalizeAudioLibrary(null);
+      }
+    }
+
+    function saveAudioLibrary() {
+      localStorage.setItem(AUDIO_LIBRARY_STORAGE_KEY, JSON.stringify(state.audioLibrary));
+      scheduleCloudSync();
+    }
+
+    function setAudioUploadStatus(category, patch) {
+      const current = state.uploadStatusByCategory?.[category] || { loading: false, error: '', success: '' };
+      state.uploadStatusByCategory[category] = {
+        loading: Boolean(typeof patch.loading === 'boolean' ? patch.loading : current.loading),
+        error: patch.error !== undefined ? String(patch.error || '') : current.error,
+        success: patch.success !== undefined ? String(patch.success || '') : current.success
+      };
+      if (state.view === 'config') renderConfigView();
+    }
+
+    function validateAudioFile(file) {
+      const MAX_AUDIO_UPLOAD_BYTES = 15 * 1024 * 1024;
+      if (!file) return 'No se recibió archivo.';
+      if (!String(file.type || '').startsWith('audio/')) return 'Solo se permiten archivos de audio.';
+      if (file.size > MAX_AUDIO_UPLOAD_BYTES) return 'El archivo supera el límite de 15 MB.';
+      return '';
+    }
+
+    async function uploadAudioFileForCategory(file, category) {
+      const error = validateAudioFile(file);
+      if (error) throw new Error(error);
+      if (!firebaseStorage) throw new Error('Storage no está inicializado.');
+
+      const safeName = cssSafe(file.name.replace(/\.[^.]+$/, '') || 'audio');
+      const extension = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] || 'bin').toLowerCase();
+      const folder = category === 'fondos' ? 'fondos' : 'voces';
+      const uniqueId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const path = `audioLibrary/${folder}/${uniqueId}-${safeName}.${extension}`;
+      const ref = firebaseStorage.ref(path);
+      const snapshot = await ref.put(file, {
+        contentType: file.type,
+        customMetadata: {
+          category: folder,
+          originalName: file.name
+        }
+      });
+      const url = await snapshot.ref.getDownloadURL();
+
+      return {
+        id: uniqueId,
+        name: file.name,
+        path,
+        url,
+        contentType: file.type || 'audio/mpeg',
+        size: Number(file.size) || 0,
+        createdAt: Date.now()
+      };
+    }
+
+    async function handleAudioLibraryFileSelected(event, category) {
+      const file = event.target?.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      setAudioUploadStatus(category, { loading: true, error: '', success: '' });
+      try {
+        const metadata = await uploadAudioFileForCategory(file, category);
+        const current = Array.isArray(state.audioLibrary[category]) ? state.audioLibrary[category] : [];
+        state.audioLibrary[category] = [metadata, ...current]
+          .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+        saveAudioLibrary();
+        setAudioUploadStatus(category, {
+          loading: false,
+          success: `Archivo "${metadata.name}" subido correctamente.`,
+          error: ''
+        });
+      } catch (err) {
+        setAudioUploadStatus(category, {
+          loading: false,
+          error: err?.message || 'No se pudo subir el archivo.',
+          success: ''
+        });
+      }
+    }
+
     function hydrateModelWithFallback() {
       const storedModel = loadCollectionModelFromStorage();
       if (storedModel) {
         collectionModel = storedModel;
+        ensureCollectionModelAudioLibrary(collectionModel);
         return;
       }
       collectionModel = migrateLegacyVideosToModel(VIDEOS);
+      ensureCollectionModelAudioLibrary(collectionModel);
       saveCollectionModel();
     }
 
@@ -1195,7 +1390,7 @@
       if (!window.firebase) return false;
       const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
       firebaseDb = app.database();
-      firebaseStorage = typeof app.storage === 'function' ? app.storage() : null;
+      firebaseStorage = app.storage?.() || null;
       return true;
     }
 
@@ -1323,15 +1518,25 @@
           const parsedModel = parseModelFromStorage(data.collectionModel);
           if (parsedModel) {
             collectionModel = parsedModel;
+            ensureCollectionModelAudioLibrary(collectionModel);
             localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
           }
+        }
+        if (data.audioLibrary && typeof data.audioLibrary === 'object') {
+          collectionModel.audioLibrary = normalizeAudioLibrary(data.audioLibrary);
+          localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         if (data.blockedCharactersByActor && typeof data.blockedCharactersByActor === 'object') {
           state.blockedCharactersByActor = data.blockedCharactersByActor;
           localStorage.setItem(BLOCKED_CHARACTERS_STORAGE_KEY, JSON.stringify(state.blockedCharactersByActor));
         }
+        if (data.audioLibrary && typeof data.audioLibrary === 'object') {
+          state.audioLibrary = normalizeAudioLibrary(data.audioLibrary);
+          localStorage.setItem(AUDIO_LIBRARY_STORAGE_KEY, JSON.stringify(state.audioLibrary));
+        }
         if (!collectionModel.videos.length && VIDEOS.length) {
           collectionModel = migrateLegacyVideosToModel(VIDEOS);
+          ensureCollectionModelAudioLibrary(collectionModel);
           localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         buildAutoMarathonPlaylist();
@@ -1389,6 +1594,7 @@
           universeMemberships: state.universeMemberships,
           videos: VIDEOS,
           collectionModel,
+          audioLibrary: collectionModel.audioLibrary,
           blockedCharactersByActor: state.blockedCharactersByActor
         });
       } catch (err) {
@@ -5552,8 +5758,31 @@
     }
 
     function renderConfigView() {
+      const categories = [
+        { key: 'voces', label: 'Voces', buttonLabel: 'AGREGAR VOZ' },
+        { key: 'fondos', label: 'Fondos', buttonLabel: 'AGREGAR FONDO' }
+      ];
+
+      const renderAudioItems = (category) => {
+        const items = Array.isArray(state.audioLibrary?.[category]) ? state.audioLibrary[category] : [];
+        if (!items.length) return '<p class="muted">No hay archivos cargados aún.</p>';
+        return `
+          <ul class="audio-library-list">
+            ${items.map((item) => `
+              <li class="audio-library-item">
+                <div>
+                  <p class="audio-library-item-name">${escapeHtml(item.name || 'Archivo sin nombre')}</p>
+                  <p class="audio-library-item-meta">${Math.max(1, Math.round((Number(item.size) || 0) / 1024))} KB · ${new Date(Number(item.createdAt) || Date.now()).toLocaleString('es-AR')}</p>
+                </div>
+                <audio controls preload="none" src="${escapeHtml(item.url || '')}" aria-label="Reproducir ${escapeHtml(item.name || 'audio')}"></audio>
+              </li>
+            `).join('')}
+          </ul>
+        `;
+      };
+
       viewConfig.innerHTML = `
-        <section class="mock-shell">
+        <section class="mock-shell audio-library-shell">
           <h2>Configuración</h2>
           <div class="mock-row">
             <button class="neon-btn toon-btn">Importar JSON</button>
@@ -5563,8 +5792,69 @@
               <div class="theme-toggle" aria-hidden="true"></div>
             </div>
           </div>
+          <div class="audio-library-grid">
+            ${categories.map(({ key, label, buttonLabel }) => {
+              const status = state.uploadStatusByCategory?.[key] || { loading: false, error: '', success: '' };
+              return `
+                <article class="audio-library-card mock-box">
+                  <div class="audio-library-header">
+                    <h3>${label}</h3>
+                    <button type="button" class="neon-btn" data-audio-trigger="${key}" ${status.loading ? 'disabled' : ''}>${status.loading ? 'SUBIENDO...' : buttonLabel}</button>
+                    <input type="file" accept="audio/*" data-audio-input="${key}" class="audio-library-input" hidden>
+                  </div>
+                  <p class="audio-library-feedback ${status.error ? 'is-error' : status.success ? 'is-success' : ''}" aria-live="polite">${escapeHtml(status.error || status.success || '')}</p>
+                  ${renderAudioItems(key)}
+                </article>
+              `;
+            }).join('')}
+          </div>
         </section>
       `;
+
+      viewConfig.querySelectorAll('[data-audio-trigger]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const category = btn.dataset.audioTrigger;
+          const input = viewConfig.querySelector(`[data-audio-input="${category}"]`);
+          input?.click();
+        });
+      });
+
+      viewConfig.querySelectorAll('[data-audio-input]').forEach((input) => {
+        input.addEventListener('change', (event) => {
+          const category = input.dataset.audioInput;
+          if (!category) return;
+          handleAudioLibraryFileSelected(event, category);
+        });
+      });
+    }
+
+    function renderAudioGalleryView() {
+      viewAudioGallery.innerHTML = `
+        <section class="mock-shell">
+          <h2>Galería de audios</h2>
+          <div class="mock-row">
+            <button class="neon-btn toon-btn" data-audio-folder="voces" style="min-height: 140px; min-width: 220px;">📁 VOCES</button>
+            <button class="neon-btn toon-btn" data-audio-folder="fondos" style="min-height: 140px; min-width: 220px;">📁 FONDOS</button>
+          </div>
+        </section>
+      `;
+
+      viewAudioGallery.querySelector('[data-audio-folder="voces"]')?.addEventListener('click', () => changeView('audioVoces'));
+      viewAudioGallery.querySelector('[data-audio-folder="fondos"]')?.addEventListener('click', () => changeView('audioFondos'));
+    }
+
+    function renderAudioCategoryView(category) {
+      const isVoces = category === 'voces';
+      const title = isVoces ? 'VOCES' : 'FONDOS';
+      const targetView = isVoces ? viewAudioVoces : viewAudioFondos;
+      targetView.innerHTML = `
+        <section class="mock-shell">
+          <h2>${title}</h2>
+          <p class="muted">Próximamente podrás gestionar y reproducir audios de ${title.toLowerCase()}.</p>
+          <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
+        </section>
+      `;
+      targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
     }
 
     function cssSafe(text) {
@@ -5686,6 +5976,9 @@
       viewStats.classList.toggle('active', next === 'stats');
       viewConfig.classList.toggle('active', next === 'config');
       viewCharacterProfile.classList.toggle('active', next === 'characterProfile');
+      viewAudioGallery.classList.toggle('active', next === 'audioGallery');
+      viewAudioVoces.classList.toggle('active', next === 'audioVoces');
+      viewAudioFondos.classList.toggle('active', next === 'audioFondos');
       document.querySelectorAll('.sidebar-nav .sidebar-item').forEach(btn => btn.classList.remove('active'));
       const activeNavByView = {
         map: navUniverses,
@@ -5693,7 +5986,10 @@
         characterProfile: navIndice,
         indice: navIndice,
         actores: navActores,
-        maraton: navMaraton
+        maraton: navMaraton,
+        audioGallery: navGaleriaAudios,
+        audioVoces: navGaleriaAudios,
+        audioFondos: navGaleriaAudios
       };
       activeNavByView[next]?.classList.add('active');
 
@@ -5712,6 +6008,9 @@
       if (next === 'stats') renderStatsView();
       if (next === 'config') renderConfigView();
       if (next === 'characterProfile') renderCharacterProfile(state.characterProfileId);
+      if (next === 'audioGallery') renderAudioGalleryView();
+      if (next === 'audioVoces') renderAudioCategoryView('voces');
+      if (next === 'audioFondos') renderAudioCategoryView('fondos');
     }
 
     toggleSidebar.onclick = () => {
@@ -5725,6 +6024,7 @@
     navIndice.onclick = () => changeView('indice');
     navActores.onclick = () => changeView('actores');
     navMaraton.onclick = () => changeView('maraton');
+    navGaleriaAudios.onclick = () => changeView('audioGallery');
 
     state.universeNodes = loadUniverseNodesFromStorage();
     syncFavoriteUniverseSetFromNodes();
@@ -5733,6 +6033,7 @@
     loadMarathonStateFromStorage();
     hydrateModelWithFallback();
     state.blockedCharactersByActor = loadBlockedCharactersFromStorage();
+    state.audioLibrary = loadAudioLibraryFromStorage();
     sanitizeUniverseMembershipsAndPersist();
     syncBlockedCharactersToVideoPlaceholders();
 
