@@ -1489,6 +1489,38 @@
       renderIndiceView();
     }
 
+    async function deleteAudioLibraryItem(category, audioId) {
+      const normalizedCategory = category === 'fondos' ? 'fondos' : 'voces';
+      const currentItems = Array.isArray(state.audioLibrary?.[normalizedCategory]) ? state.audioLibrary[normalizedCategory] : [];
+      const targetItem = currentItems.find((item) => item.id === audioId);
+      if (!targetItem) throw new Error('No encontramos el audio seleccionado.');
+      if (!firebaseStorage) throw new Error('Firebase Storage no está disponible en esta sesión.');
+
+      const storagePath = String(targetItem.path || '').trim();
+      if (!storagePath) throw new Error('Este audio no tiene path de storage, no se puede eliminar.');
+
+      await firebaseStorage.ref(storagePath).delete();
+      state.audioLibrary[normalizedCategory] = currentItems.filter((item) => item.id !== audioId);
+      saveAudioLibrary();
+    }
+
+    function renameAudioLibraryItem(category, audioId, nextName) {
+      const normalizedCategory = category === 'fondos' ? 'fondos' : 'voces';
+      const cleanName = String(nextName || '').trim();
+      if (!cleanName) throw new Error('El nombre no puede quedar vacío.');
+
+      const currentItems = Array.isArray(state.audioLibrary?.[normalizedCategory]) ? state.audioLibrary[normalizedCategory] : [];
+      const targetIndex = currentItems.findIndex((item) => item.id === audioId);
+      if (targetIndex < 0) throw new Error('No encontramos el audio seleccionado.');
+
+      currentItems[targetIndex] = {
+        ...currentItems[targetIndex],
+        name: cleanName
+      };
+      state.audioLibrary[normalizedCategory] = currentItems;
+      saveAudioLibrary();
+    }
+
     function openMarkAsUsedModal(videoId) {
       const video = VIDEOS.find((item) => item.id === videoId);
       if (!video) return;
@@ -1537,6 +1569,58 @@
             feedbackEl.style.color = '#ffb6b6';
             feedbackEl.textContent = err?.message || 'No se pudo eliminar el audio de Firebase. No se modificó la vista local.';
           }
+          confirmBtn.disabled = false;
+        }
+      });
+    }
+
+    function openMarkAudioLibraryAsUsedModal(category, audioId) {
+      const normalizedCategory = category === 'fondos' ? 'fondos' : 'voces';
+      const items = Array.isArray(state.audioLibrary?.[normalizedCategory]) ? state.audioLibrary[normalizedCategory] : [];
+      const audioItem = items.find((item) => item.id === audioId);
+      if (!audioItem) return;
+
+      const modal = document.createElement('section');
+      modal.className = 'detail-modal';
+      modal.innerHTML = `
+        <article class="detail-content mark-used-modal">
+          <h3 class="section-title">Marcar audio como usado</h3>
+          <p class="mark-used-modal__text">
+            Vas a marcar como usado <strong>${escapeHtml(audioItem.name || 'audio')}</strong>.
+            Esta acción lo eliminará <strong>definitivamente</strong> de Firebase Storage y de la galería.
+          </p>
+          <div class="actions">
+            <button type="button" class="neon-btn" data-modal-cancel-used>Cancelar</button>
+            <button type="button" class="neon-btn neon-btn--primary" data-modal-confirm-used>✅ Confirmar eliminación</button>
+          </div>
+        </article>
+      `;
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+
+      modal.querySelector('[data-modal-cancel-used]')?.addEventListener('click', () => modal.remove());
+      modal.querySelector('[data-modal-confirm-used]')?.addEventListener('click', async (event) => {
+        const confirmBtn = event.currentTarget;
+        confirmBtn.disabled = true;
+        setAudioUploadStatus(normalizedCategory, { loading: false, error: '', success: 'Eliminando audio usado...' });
+        try {
+          await deleteAudioLibraryItem(normalizedCategory, audioId);
+          setAudioUploadStatus(normalizedCategory, {
+            loading: false,
+            error: '',
+            success: 'Audio marcado como usado y eliminado correctamente.'
+          });
+          renderAudioCategoryView(normalizedCategory);
+          modal.remove();
+        } catch (err) {
+          console.error('Error eliminando audio de la galería:', err);
+          setAudioUploadStatus(normalizedCategory, {
+            loading: false,
+            success: '',
+            error: err?.message || 'No se pudo eliminar el audio de Firebase.'
+          });
           confirmBtn.disabled = false;
         }
       });
@@ -4552,13 +4636,6 @@
                         <h3><button type="button" class="actor-name-btn" data-open-actor-profile="${item.actorName}" aria-label="Abrir perfil de ${item.actorName}">${item.actorName}</button> <button type="button" class="neon-btn add-greeting-btn actor-add-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar otro video para ${item.actorName}">+</button></h3>
                         <div class="character-audio-actions">
                           <button type="button" class="neon-btn" data-open-video="${item.video.id}">▶ Ver video</button>
-                          <button
-                            type="button"
-                            class="neon-btn audio-used-btn"
-                            data-mark-used-video="${item.video.id}"
-                            aria-label="Marcar como usado y borrar definitivamente el audio de ${item.actorName}"
-                            title="Marcar audio como usado"
-                          >✅</button>
                         </div>
                       </div>
                     </article>
@@ -4694,14 +4771,6 @@
           btn.addEventListener('click', () => {
              const videoId = btn.dataset.openVideo || btn.dataset.openVideoModal;
              openVideoDetail(videoId);
-          });
-        });
-        viewIndice.querySelectorAll('[data-mark-used-video]').forEach((btn) => {
-          btn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const videoId = btn.dataset.markUsedVideo;
-            if (!videoId) return;
-            openMarkAsUsedModal(videoId);
           });
         });
         viewIndice.querySelectorAll('[data-open-actor-profile]').forEach((btn) => {
@@ -5931,6 +6000,10 @@
                     <p class="audio-library-item-meta">${Math.max(1, Math.round((Number(item.size) || 0) / 1024))} KB · ${new Date(Number(item.createdAt) || Date.now()).toLocaleString('es-AR')}</p>
                   </div>
                   <audio controls preload="none" src="${escapeHtml(item.url || '')}" aria-label="Reproducir ${escapeHtml(item.name || 'audio')}"></audio>
+                  <div class="audio-library-item-actions">
+                    <button type="button" class="neon-btn" data-edit-audio-item="${escapeHtml(item.id)}">✏️ Editar</button>
+                    <button type="button" class="neon-btn audio-used-btn" data-mark-used-audio="${escapeHtml(item.id)}" aria-label="Marcar como usado y borrar ${escapeHtml(item.name || 'audio')}" title="Marcar audio como usado">✅ Usado</button>
+                  </div>
                 </li>
               `).join('')}
             </ul>
@@ -5946,6 +6019,39 @@
         const customName = String(nameInput?.value || '').trim();
         if (nameInput) nameInput.value = '';
         handleAudioLibraryFileSelected(event, category, customName);
+      });
+      targetView.querySelectorAll('[data-edit-audio-item]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const audioId = String(btn.dataset.editAudioItem || '');
+          if (!audioId) return;
+          const currentItem = (Array.isArray(state.audioLibrary?.[category]) ? state.audioLibrary[category] : [])
+            .find((item) => item.id === audioId);
+          if (!currentItem) return;
+          const nextName = window.prompt('Editar nombre del audio:', currentItem.name || '');
+          if (nextName === null) return;
+          try {
+            renameAudioLibraryItem(category, audioId, nextName);
+            setAudioUploadStatus(category, {
+              loading: false,
+              error: '',
+              success: `Nombre actualizado a "${String(nextName || '').trim()}".`
+            });
+            renderAudioCategoryView(category);
+          } catch (err) {
+            setAudioUploadStatus(category, {
+              loading: false,
+              success: '',
+              error: err?.message || 'No se pudo editar el audio.'
+            });
+          }
+        });
+      });
+      targetView.querySelectorAll('[data-mark-used-audio]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const audioId = String(btn.dataset.markUsedAudio || '');
+          if (!audioId) return;
+          openMarkAudioLibraryAsUsedModal(category, audioId);
+        });
       });
     }
 

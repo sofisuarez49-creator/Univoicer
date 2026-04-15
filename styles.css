@@ -4488,6 +4488,24 @@
   width: 100%;
 }
 
+.audio-library-item-actions {
+  display: flex;
+  gap: .55rem;
+  flex-wrap: wrap;
+}
+
+.audio-library-item-actions .audio-used-btn {
+  border-color: rgba(174, 255, 199, .96);
+  background: linear-gradient(160deg, rgba(72, 255, 164, 1), rgba(15, 175, 88, .98));
+  color: #f4fff7;
+  -webkit-text-fill-color: currentColor;
+}
+
+.audio-library-item-actions .audio-used-btn:hover {
+  border-color: rgba(225, 255, 236, .98);
+  background: linear-gradient(160deg, rgba(106, 255, 182, 1), rgba(23, 194, 103, 1));
+}
+
 .audio-library-feedback {
   min-height: 1.2rem;
   margin: 0;
