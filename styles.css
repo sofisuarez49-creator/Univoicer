@@ -1588,11 +1588,46 @@
     .video-card h3 { margin: 0 0 6px; font-size: 1rem; }
     .video-card p { margin: 0; color: var(--muted); font-size: .92rem; }
 
+    .actor-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .actor-filter-toggle {
+      min-height: 34px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(145, 219, 255, .48);
+      background: linear-gradient(170deg, rgba(15, 35, 68, .92), rgba(12, 26, 52, .9));
+      color: #d9f3ff;
+      font-weight: 900;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .actor-filter-toggle:hover {
+      transform: translateY(-1px);
+      border-color: rgba(172, 233, 255, .85);
+      box-shadow: 0 0 14px rgba(110, 205, 255, .25);
+    }
+    .actor-filter-toggle.active {
+      border-color: var(--accent);
+      box-shadow: var(--accent-glow);
+    }
+    .actor-filter-toggle--flag {
+      min-width: 42px;
+      padding-inline: 10px;
+      font-size: 1.05rem;
+    }
     .actor-alpha-filter {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 8px;
+    }
+    .actor-alpha-filter.is-hidden,
+    .actor-tier-filters.is-hidden {
+      display: none;
     }
     .actor-alpha-btn {
       min-width: 34px;
@@ -1823,6 +1858,34 @@
       font-weight: 700;
       letter-spacing: .02em;
       white-space: normal;
+    }
+    .actor-card-progress {
+      display: grid;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .actor-card-progress-track {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(14, 30, 56, .7);
+      border: 1px solid rgba(145, 219, 255, .42);
+      overflow: hidden;
+    }
+    .actor-card-progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #29f2ff, #6ef7ff);
+      box-shadow: 0 0 10px rgba(43, 247, 255, .52);
+      transition: width .2s ease;
+    }
+    .actor-card-progress-label {
+      margin: 0;
+      font-size: .68rem;
+      color: #c4dffa;
+      font-weight: 700;
+      letter-spacing: .03em;
+      text-align: right;
     }
     .actor-inline-detail {
       grid-column: 1 / -1;
