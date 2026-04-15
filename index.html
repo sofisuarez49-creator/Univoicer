@@ -1,0 +1,77 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🚀🌌 UNIVOICER 🪐</title>
+    <link rel="stylesheet" href="styles.css" />
+
+</head>
+<body>
+  <main class="app">
+    <div class="layout" id="appLayout">
+      <aside class="sidebar" aria-label="Menú principal">
+        <div class="sidebar-copy">
+          <h1 class="title"><span class="title-emoji">🛸</span><span class="title-text">UNIVOICER</span><span class="title-emoji">✨</span></h1>
+        </div>
+        <button id="toggleSidebar" class="sidebar-toggle" aria-label="Colapsar menú">←</button>
+        <nav class="sidebar-nav">
+          <button id="navUniverses" class="sidebar-item active">
+            <span class="sidebar-item-icon" aria-hidden="true">🌌</span>
+            <span class="sidebar-item-text">
+              <span class="sidebar-label">Universos</span>
+            </span>
+          </button>
+          <button id="navActores" class="sidebar-item">
+            <span class="sidebar-item-icon" aria-hidden="true">🎙️</span>
+            <span class="sidebar-item-text">
+              <span class="sidebar-label">Actores</span>
+            </span>
+          </button>
+          <button id="navMaraton" class="sidebar-item">
+            <span class="sidebar-item-icon" aria-hidden="true">🏃‍♂️</span>
+            <span class="sidebar-item-text">
+              <span class="sidebar-label">Maratones</span>
+            </span>
+          </button>
+          <button id="navIndice" class="sidebar-item">
+            <span class="sidebar-item-icon" aria-hidden="true">📚</span>
+            <span class="sidebar-item-text">
+              <span class="sidebar-label">Personajes</span>
+            </span>
+          </button>
+        </nav>
+      </aside>
+
+      <section class="content">
+        <div class="space-decor" aria-hidden="true">
+          <span>🛸</span>
+          <span>🪐</span>
+          <span>🌠</span>
+        </div>
+        <section id="viewInicio" class="view"></section>
+        <section id="viewMap" class="view active"></section>
+        <section id="viewUniverse" class="view"></section>
+        <section id="viewCollection" class="view"></section>
+        <section id="viewIndice" class="view"></section>
+        <section id="viewMaraton" class="view"></section>
+        <section id="viewRarezas" class="view"></section>
+        <section id="viewActores" class="view"></section>
+        <section id="viewVersiones" class="view"></section>
+        <section id="viewAchievements" class="view"></section>
+        <section id="viewFavoritos" class="view"></section>
+        <section id="viewBuscar" class="view"></section>
+        <section id="viewStats" class="view"></section>
+        <section id="viewConfig" class="view"></section>
+        <section id="viewCharacterProfile" class="view"></section>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
