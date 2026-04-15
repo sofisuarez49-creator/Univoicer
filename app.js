@@ -70,7 +70,13 @@
       mapWorldFilter: 'universe',
       mapAbsorptionEffect: null,
       favoriteUniverses: new Set(),
-      showInteruniversalConnections: false
+      showInteruniversalConnections: false,
+      audioLibrary: {
+        voces: [],
+        fondos: [],
+        editing: null,
+        feedback: ''
+      }
     };
     const UNIVERSES_STORAGE_KEY = 'universes_map_v1';
     const VIDEOS_STORAGE_KEY = 'videos_collection_v1';
@@ -1197,6 +1203,34 @@
       return true;
     }
 
+    function normalizeAudioCategoryItems(items = []) {
+      if (!Array.isArray(items)) return [];
+      return items
+        .filter(item => item && typeof item === 'object')
+        .map((item, index) => ({
+          id: String(item.id || `audio-${Date.now()}-${index}`),
+          title: String(item.title || item.nombre || item.name || item.filename || '').trim(),
+          tags: String(item.tags || '').trim(),
+          notes: String(item.notes || item.notas || '').trim(),
+          used: Boolean(item.used),
+          downloadURL: String(item.downloadURL || item.url || item.fileUrl || '').trim()
+        }));
+    }
+
+    function parseAudioLibraryPayload(rawPayload) {
+      const payload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
+      const rawVoces = Array.isArray(payload.voces)
+        ? payload.voces
+        : Object.values(payload.voces || {});
+      const rawFondos = Array.isArray(payload.fondos)
+        ? payload.fondos
+        : Object.values(payload.fondos || {});
+      return {
+        voces: normalizeAudioCategoryItems(rawVoces),
+        fondos: normalizeAudioCategoryItems(rawFondos)
+      };
+    }
+
     async function loadFromFirebase() {
       if (!firebaseDb) return;
       try {
@@ -1236,6 +1270,11 @@
         if (data.blockedCharactersByActor && typeof data.blockedCharactersByActor === 'object') {
           state.blockedCharactersByActor = data.blockedCharactersByActor;
           localStorage.setItem(BLOCKED_CHARACTERS_STORAGE_KEY, JSON.stringify(state.blockedCharactersByActor));
+        }
+        if (data.audioLibrary && typeof data.audioLibrary === 'object') {
+          const parsedAudioLibrary = parseAudioLibraryPayload(data.audioLibrary);
+          state.audioLibrary.voces = parsedAudioLibrary.voces;
+          state.audioLibrary.fondos = parsedAudioLibrary.fondos;
         }
         if (!collectionModel.videos.length && VIDEOS.length) {
           collectionModel = migrateLegacyVideosToModel(VIDEOS);
@@ -1296,7 +1335,11 @@
           universeMemberships: state.universeMemberships,
           videos: VIDEOS,
           collectionModel,
-          blockedCharactersByActor: state.blockedCharactersByActor
+          blockedCharactersByActor: state.blockedCharactersByActor,
+          audioLibrary: {
+            voces: state.audioLibrary.voces,
+            fondos: state.audioLibrary.fondos
+          }
         });
       } catch (err) {
         console.warn('No se pudo guardar en Firebase.', err);
@@ -5442,6 +5485,7 @@
     }
 
     function renderConfigView() {
+      const feedback = state.audioLibrary.feedback ? `<p class="muted">${state.audioLibrary.feedback}</p>` : '';
       viewConfig.innerHTML = `
         <section class="mock-shell">
           <h2>Configuración</h2>
@@ -5454,7 +5498,134 @@
             </div>
           </div>
         </section>
+        <section class="panel">
+          <h3>Gestión de Voces y Fondos</h3>
+          ${feedback}
+          ${renderAudioCategoryView('voces', 'Voces')}
+          ${renderAudioCategoryView('fondos', 'Fondos')}
+        </section>
       `;
+      bindAudioCategoryHandlers();
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getAudioItemUrl(item) {
+      return String(item?.downloadURL || '').trim();
+    }
+
+    function renderAudioCategoryView(categoryKey, label) {
+      const items = Array.isArray(state.audioLibrary[categoryKey]) ? state.audioLibrary[categoryKey] : [];
+      return `
+        <article class="audio-category-block">
+          <h4>${label}</h4>
+          <div class="audio-category-list">
+            ${items.map((item) => {
+              const isEditing = state.audioLibrary.editing === `${categoryKey}:${item.id}`;
+              const safeTitle = escapeHtml(item.title || 'Sin título');
+              const safeTags = escapeHtml(item.tags || '');
+              const safeNotes = escapeHtml(item.notes || '');
+              const audioUrl = getAudioItemUrl(item);
+              const safeAudioUrl = escapeHtml(audioUrl);
+              return `
+                <div class="audio-item-card" data-audio-category="${categoryKey}" data-audio-id="${escapeHtml(item.id)}">
+                  <div class="audio-item-main">
+                    <p class="audio-item-title">${safeTitle}</p>
+                    ${audioUrl ? `<audio controls preload="none" src="${safeAudioUrl}"></audio>` : '<p class="muted">Sin downloadURL en Storage.</p>'}
+                    ${isEditing ? `
+                      <div class="audio-edit-fields">
+                        <label>Título / nombre
+                          <input type="text" data-audio-field="title" value="${safeTitle}" />
+                        </label>
+                        <label>Etiquetas (opcional)
+                          <input type="text" data-audio-field="tags" value="${safeTags}" />
+                        </label>
+                        <label>Notas (opcional)
+                          <textarea rows="2" data-audio-field="notes">${safeNotes}</textarea>
+                        </label>
+                      </div>
+                    ` : `
+                      <p class="muted">Etiquetas: ${safeTags || '—'}</p>
+                      <p class="muted">Notas: ${safeNotes || '—'}</p>
+                    `}
+                  </div>
+                  <div class="audio-item-actions">
+                    <button class="neon-btn toon-btn" type="button" data-audio-action="edit">${isEditing ? 'Cancelar' : 'Editar'}</button>
+                    <button class="neon-btn toon-btn" type="button" data-audio-action="save" ${isEditing ? '' : 'disabled'}>Guardar cambios</button>
+                    ${audioUrl ? `<a class="neon-btn toon-btn" href="${safeAudioUrl}" data-audio-action="download" download>Descargar</a>` : '<button class="neon-btn toon-btn" type="button" disabled>Descargar</button>'}
+                    <button class="neon-btn toon-btn audio-used-btn ${item.used ? 'is-used' : ''}" type="button" data-audio-action="used" title="Marcar como usado">${item.used ? '✅ Usado' : '✔️ Marcar usado'}</button>
+                  </div>
+                </div>
+              `;
+            }).join('') || '<p class="muted">No hay ítems en esta categoría.</p>'}
+          </div>
+        </article>
+      `;
+    }
+
+    function bindAudioCategoryHandlers() {
+      viewConfig.querySelectorAll('[data-audio-action]').forEach((control) => {
+        control.addEventListener('click', (event) => {
+          const action = control.dataset.audioAction;
+          const card = event.currentTarget.closest('[data-audio-category][data-audio-id]');
+          if (!card || !action) return;
+          const category = card.dataset.audioCategory;
+          const itemId = card.dataset.audioId;
+          const list = state.audioLibrary[category];
+          if (!Array.isArray(list)) return;
+          const itemIndex = list.findIndex((item) => String(item.id) === String(itemId));
+          if (itemIndex < 0) return;
+          const key = `${category}:${itemId}`;
+
+          if (action === 'edit') {
+            state.audioLibrary.editing = state.audioLibrary.editing === key ? null : key;
+            state.audioLibrary.feedback = '';
+            renderConfigView();
+            return;
+          }
+
+          if (action === 'save') {
+            if (state.audioLibrary.editing !== key) return;
+            const titleInput = card.querySelector('[data-audio-field="title"]');
+            const tagsInput = card.querySelector('[data-audio-field="tags"]');
+            const notesInput = card.querySelector('[data-audio-field="notes"]');
+            const nextTitle = String(titleInput?.value || '').trim();
+            if (!nextTitle) {
+              state.audioLibrary.feedback = 'El título/nombre es obligatorio para guardar.';
+              renderConfigView();
+              return;
+            }
+            list[itemIndex] = {
+              ...list[itemIndex],
+              title: nextTitle,
+              tags: String(tagsInput?.value || '').trim(),
+              notes: String(notesInput?.value || '').trim()
+            };
+            state.audioLibrary.editing = null;
+            state.audioLibrary.feedback = 'Cambios guardados correctamente.';
+            scheduleCloudSync();
+            renderConfigView();
+            return;
+          }
+
+          if (action === 'used') {
+            list[itemIndex] = {
+              ...list[itemIndex],
+              used: !list[itemIndex].used
+            };
+            state.audioLibrary.feedback = 'Estado de uso actualizado.';
+            scheduleCloudSync();
+            renderConfigView();
+          }
+        });
+      });
     }
 
     function cssSafe(text) {

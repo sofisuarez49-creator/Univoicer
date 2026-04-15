@@ -3155,6 +3155,50 @@
       background-size: 26px 26px;
       opacity: .38;
     }
+    .audio-category-block {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(120, 203, 255, .25);
+    }
+    .audio-category-list {
+      display: grid;
+      gap: 10px;
+    }
+    .audio-item-card {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      border: 1px solid rgba(120, 203, 255, .3);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(9, 18, 39, .75);
+    }
+    .audio-item-title {
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+    .audio-item-card audio {
+      width: min(100%, 360px);
+      margin-bottom: 8px;
+    }
+    .audio-item-actions {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .audio-edit-fields {
+      display: grid;
+      gap: 8px;
+    }
+    .audio-edit-fields input,
+    .audio-edit-fields textarea {
+      width: 100%;
+    }
+    .audio-used-btn.is-used {
+      border-color: rgba(97, 231, 147, .6);
+      box-shadow: 0 0 0 1px rgba(97, 231, 147, .35), 0 0 18px rgba(97, 231, 147, .25);
+    }
     .actors-shell {
       border-radius: calc(var(--radius) + 8px);
       gap: 18px;
