@@ -4346,3 +4346,72 @@
     @media (max-width: 520px) {
       .actor-gallery { grid-template-columns: 1fr; }
     }
+
+.audio-library-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.audio-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.audio-library-card {
+  display: grid;
+  gap: .75rem;
+}
+
+.audio-library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.audio-library-list {
+  display: grid;
+  gap: .65rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.audio-library-item {
+  display: grid;
+  gap: .5rem;
+  padding: .75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: .75rem;
+  background: rgba(7, 12, 26, 0.42);
+}
+
+.audio-library-item-name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.audio-library-item-meta {
+  margin: .2rem 0 0;
+  font-size: .85rem;
+  opacity: .75;
+}
+
+.audio-library-item audio {
+  width: 100%;
+}
+
+.audio-library-feedback {
+  min-height: 1.2rem;
+  margin: 0;
+  font-size: .9rem;
+}
+
+.audio-library-feedback.is-error {
+  color: #ff7e96;
+}
+
+.audio-library-feedback.is-success {
+  color: #72f3b5;
+}
