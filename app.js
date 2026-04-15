@@ -23,12 +23,15 @@
       search: { personaje: '', actor: '' },
       selectedVideoId: null,
       actorFocus: null,
-      actorLetterFilter: 'top',
+      actorLetterFilter: '',
+      actorLetterFilterExpanded: false,
+      actorTierFiltersExpanded: false,
       actorTierFilters: {
         platinado: false,
         consagrado: false,
         destacado: false,
-        desbloqueado: false
+        desbloqueado: false,
+        bloqueado: false
       },
       actorDetailsExpanded: false,
       actorRenameModalOpen: false,
@@ -3340,6 +3343,7 @@
         modal.remove();
         state.actorFocus = actorName;
         state.actorLetterFilter = getActorInitialLetter(actorName);
+        state.actorLetterFilterExpanded = true;
         state.actorDetailsExpanded = true;
         changeView('actores');
       });
@@ -4334,6 +4338,7 @@
             if (!actorName) return;
             state.actorFocus = actorName;
             state.actorLetterFilter = getActorInitialLetter(actorName);
+            state.actorLetterFilterExpanded = true;
             state.actorDetailsExpanded = true;
             changeView('actores');
           });
@@ -4929,6 +4934,8 @@
         const unlockedCharactersCount = unlockedCharactersSet.size;
         const totalCharactersCount = totalCharactersSet.size;
         const tier = getActorTier(unlockedCharactersCount);
+        const completionRatio = totalCharactersCount > 0 ? (unlockedCharactersCount / totalCharactersCount) : 0;
+        const completionPercent = Math.round(completionRatio * 100);
         return {
           name,
           entries,
@@ -4940,7 +4947,15 @@
           tierLabel: tier.label,
           tierRank: tier.rank,
           initial: getActorInitialLetter(name),
-          isFeaturedTier: tier.rank >= ACTOR_TIERS.destacado.rank
+          completionPercent,
+          completionLabel: `${unlockedCharactersCount}/${totalCharactersCount || 0}`,
+          tierFlags: {
+            platinado: tier.key === 'platinado',
+            consagrado: tier.key === 'consagrado',
+            destacado: tier.key === 'destacado',
+            desbloqueado: tier.key === 'desbloqueado',
+            bloqueado: tier.key === 'bloqueado'
+          }
         };
       }).sort((a, b) => (
         b.tierRank - a.tierRank
@@ -4958,11 +4973,10 @@
         : actorSummaries;
 
       const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-      const activeLetterFilter = state.actorLetterFilter || 'top';
-      const featuredActorSummaries = actorSummaries.filter((item) => item.isFeaturedTier);
-      const filteredActorSummaries = activeLetterFilter === 'top'
-        ? (featuredActorSummaries.length ? featuredActorSummaries : actorSummaries.slice(0, 8))
-        : actorSummaries.filter((item) => item.initial === activeLetterFilter);
+      const activeLetterFilter = state.actorLetterFilter || '';
+      const filteredActorSummaries = actorSummariesByTier.filter((item) => (
+        !activeLetterFilter || item.initial === activeLetterFilter
+      ));
       const visibleActorNames = filteredActorSummaries.map((item) => item.name);
       if (state.actorFocus && !visibleActorNames.includes(state.actorFocus)) {
         state.actorFocus = null;
@@ -5050,8 +5064,11 @@
             <h2 class="actor-panel-title no-margin toon-title">Colección de actores</h2>
             <button id="toggleActorFormBtn" class="neon-btn actor-action-btn">Agregar Nuevo Actor</button>
           </div>
-          <div class="actor-alpha-filter" aria-label="Filtro alfabético de actores">
-            <button type="button" class="actor-alpha-btn ${activeLetterFilter === 'top' ? 'active' : ''}" data-actor-letter="top">DESTACADOS</button>
+          <div class="actor-toolbar" aria-label="Controles de filtrado de actores">
+            <button type="button" class="actor-filter-toggle ${state.actorLetterFilterExpanded ? 'active' : ''}" id="toggleActorAlphabetBtn" aria-expanded="${state.actorLetterFilterExpanded ? 'true' : 'false'}">A-Z</button>
+            <button type="button" class="actor-filter-toggle actor-filter-toggle--flag ${state.actorTierFiltersExpanded ? 'active' : ''}" id="toggleActorTierFiltersBtn" aria-expanded="${state.actorTierFiltersExpanded ? 'true' : 'false'}">🚩</button>
+          </div>
+          <div class="actor-alpha-filter ${state.actorLetterFilterExpanded ? '' : 'is-hidden'}" aria-label="Filtro alfabético de actores">
             ${alphabet.map((letter) => `
               <button type="button" class="actor-alpha-btn ${activeLetterFilter === letter ? 'active' : ''}" data-actor-letter="${letter}">${letter}</button>
             `).join('')}
@@ -5069,7 +5086,7 @@
             </div>
           </form>
 
-          <div class="actor-tier-filters" aria-label="Filtro por estado actual de actor">
+          <div class="actor-tier-filters ${state.actorTierFiltersExpanded ? '' : 'is-hidden'}" aria-label="Filtro por estado actual de actor">
             <label class="actor-tier-filter-item">
               <input type="checkbox" data-actor-tier-filter="platinado" ${state.actorTierFilters.platinado ? 'checked' : ''}>
               <span>Platinado</span>
@@ -5086,6 +5103,10 @@
               <input type="checkbox" data-actor-tier-filter="desbloqueado" ${state.actorTierFilters.desbloqueado ? 'checked' : ''}>
               <span>Desbloqueado</span>
             </label>
+            <label class="actor-tier-filter-item">
+              <input type="checkbox" data-actor-tier-filter="bloqueado" ${state.actorTierFilters.bloqueado ? 'checked' : ''}>
+              <span>Bloqueado</span>
+            </label>
           </div>
 
           <div class="actor-gallery mock-gap-lg">
@@ -5096,7 +5117,12 @@
                 <div class="actor-card-footer">
                   <p class="actor-card-meta">Personajes: ${item.totalCharactersCount}</p>
                   <p class="actor-card-meta">Desbloqueados: ${item.unlockedCharactersCount}</p>
-                  <p class="actor-card-meta">Videos: ${item.videosCount}</p>
+                </div>
+                <div class="actor-card-progress" role="img" aria-label="Progreso del perfil ${item.completionLabel}">
+                  <div class="actor-card-progress-track">
+                    <div class="actor-card-progress-fill" style="width: ${item.completionPercent}%;"></div>
+                  </div>
+                  <p class="actor-card-progress-label">${item.completionLabel}</p>
                 </div>
               </button>
               ${selectedActorRowEndIndex === idx ? actorInlineDetailMarkup : ''}
@@ -5122,9 +5148,20 @@
       `;
 
       // Form Toggle
+      const toggleAlphabetBtn = document.getElementById('toggleActorAlphabetBtn');
+      toggleAlphabetBtn?.addEventListener('click', () => {
+        state.actorLetterFilterExpanded = !state.actorLetterFilterExpanded;
+        renderActoresView();
+      });
+      const toggleTierFiltersBtn = document.getElementById('toggleActorTierFiltersBtn');
+      toggleTierFiltersBtn?.addEventListener('click', () => {
+        state.actorTierFiltersExpanded = !state.actorTierFiltersExpanded;
+        renderActoresView();
+      });
+
       viewActores.querySelectorAll('[data-actor-letter]').forEach((btn) => {
         btn.addEventListener('click', () => {
-          const next = btn.dataset.actorLetter || 'top';
+          const next = btn.dataset.actorLetter || '';
           if (state.actorLetterFilter === next) return;
           state.actorLetterFilter = next;
           state.actorFocus = null;
@@ -5180,6 +5217,7 @@
         refreshDependentViews();
         state.actorFocus = actorName;
         state.actorLetterFilter = getActorInitialLetter(actorName);
+        state.actorLetterFilterExpanded = true;
         state.actorDetailsExpanded = true;
         renderActoresView();
       });
@@ -5249,6 +5287,7 @@
           }
           state.actorFocus = cleanName;
           state.actorLetterFilter = getActorInitialLetter(cleanName);
+          state.actorLetterFilterExpanded = true;
           state.actorRenameModalOpen = false;
           saveBlockedCharacters();
           saveVideos();
