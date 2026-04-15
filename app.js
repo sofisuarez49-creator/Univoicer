@@ -100,12 +100,7 @@
     let firebaseDb = null;
     let firebaseStorage = null;
     let cloudSyncTimer = null;
-    let collectionModel = {
-      actors: [],
-      characters: [],
-      universes: [],
-      videos: []
-    };
+    let collectionModel = createEmptyCollectionModel();
 
     let marathonPlayer = null;
     let marathonPlayerReady = false;
@@ -117,6 +112,7 @@
     const navIndice = document.getElementById('navIndice');
     const navActores = document.getElementById('navActores');
     const navMaraton = document.getElementById('navMaraton');
+    const navGaleriaAudios = document.getElementById('navGaleriaAudios');
     const viewInicio = document.getElementById('viewInicio');
     const viewMap = document.getElementById('viewMap');
     const viewUniverse = document.getElementById('viewUniverse');
@@ -132,6 +128,9 @@
     const viewStats = document.getElementById('viewStats');
     const viewConfig = document.getElementById('viewConfig');
     const viewCharacterProfile = document.getElementById('viewCharacterProfile');
+    const viewAudioGallery = document.getElementById('viewAudioGallery');
+    const viewAudioVoces = document.getElementById('viewAudioVoces');
+    const viewAudioFondos = document.getElementById('viewAudioFondos');
 
     function rarityClass(rareza) {
       return `rare-${rareza.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
@@ -280,8 +279,73 @@
         characters: [],
         universes: [],
         videos: [],
-        worldMemberships: []
+        worldMemberships: [],
+        audioLibrary: createEmptyAudioLibrary()
       };
+    }
+
+    function createEmptyAudioLibrary() {
+      return {
+        voces: [],
+        fondos: []
+      };
+    }
+
+    function normalizeAudioTimestamp(value, fallback) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return new Date(numeric).toISOString();
+      }
+      const text = String(value || '').trim();
+      if (text) {
+        const parsed = Date.parse(text);
+        if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+      }
+      return fallback;
+    }
+
+    function normalizeAudioLibraryItem(rawItem, fallbackCategory, index) {
+      if (!rawItem || typeof rawItem !== 'object') return null;
+      const validCategory = rawItem.category === 'voces' || rawItem.category === 'fondos'
+        ? rawItem.category
+        : fallbackCategory;
+      const createdAt = normalizeAudioTimestamp(rawItem.createdAt, new Date().toISOString());
+      const updatedAt = normalizeAudioTimestamp(rawItem.updatedAt, createdAt);
+      const parsedDurationMs = Number(rawItem.durationMs);
+
+      return {
+        id: String(rawItem.id || `audio-${validCategory}-${Date.now()}-${index}`),
+        category: validCategory,
+        name: String(rawItem.name || '').trim(),
+        storagePath: String(rawItem.storagePath || '').trim(),
+        downloadURL: String(rawItem.downloadURL || '').trim(),
+        ...(Number.isFinite(parsedDurationMs) && parsedDurationMs >= 0 ? { durationMs: parsedDurationMs } : {}),
+        createdAt,
+        updatedAt
+      };
+    }
+
+    function normalizeAudioLibrary(rawAudioLibrary) {
+      const empty = createEmptyAudioLibrary();
+      if (!rawAudioLibrary || typeof rawAudioLibrary !== 'object') return empty;
+
+      const normalizeCategoryList = (rawList, fallbackCategory) => (
+        (Array.isArray(rawList) ? rawList : [])
+          .map((item, index) => normalizeAudioLibraryItem(item, fallbackCategory, index))
+          .filter(Boolean)
+      );
+
+      return {
+        voces: normalizeCategoryList(rawAudioLibrary.voces, 'voces'),
+        fondos: normalizeCategoryList(rawAudioLibrary.fondos, 'fondos')
+      };
+    }
+
+    function ensureCollectionModelAudioLibrary(model) {
+      if (!model || typeof model !== 'object') return createEmptyAudioLibrary();
+      const normalizedAudioLibrary = normalizeAudioLibrary(model.audioLibrary);
+      model.audioLibrary = normalizedAudioLibrary;
+      return normalizedAudioLibrary;
     }
 
     function parseModelFromStorage(rawModel) {
@@ -334,11 +398,13 @@
             }))
             .filter(item => item.worldUniverseId && item.parentUniverseId)
             .filter(item => rawUniverseIds.has(item.worldUniverseId) && rawUniverseIds.has(item.parentUniverseId))
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(rawModel.audioLibrary)
       };
     }
 
     function saveCollectionModel() {
+      ensureCollectionModelAudioLibrary(collectionModel);
       localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
       scheduleCloudSync();
     }
@@ -476,7 +542,8 @@
               parentUniverseId: String(item.parentUniverseId || '')
             }))
             .filter((item) => item.worldUniverseId && item.parentUniverseId)
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(baseModel.audioLibrary)
       };
 
       const actorMap = new Map(model.actors.map((actor) => [normalizeEntityName(actor.name), actor]));
@@ -1041,6 +1108,7 @@
 
     function syncCollectionModelWithVideos(preserveActorsFromModel = collectionModel) {
       const nextModel = migrateLegacyVideosToModel(VIDEOS);
+      nextModel.audioLibrary = normalizeAudioLibrary(preserveActorsFromModel?.audioLibrary);
       const actorNameToActor = new Map(
         (nextModel.actors || []).map((actor) => [normalizeEntityName(actor.name), actor])
       );
@@ -1310,9 +1378,11 @@
       const storedModel = loadCollectionModelFromStorage();
       if (storedModel) {
         collectionModel = storedModel;
+        ensureCollectionModelAudioLibrary(collectionModel);
         return;
       }
       collectionModel = migrateLegacyVideosToModel(VIDEOS);
+      ensureCollectionModelAudioLibrary(collectionModel);
       saveCollectionModel();
     }
 
@@ -1357,8 +1427,13 @@
           const parsedModel = parseModelFromStorage(data.collectionModel);
           if (parsedModel) {
             collectionModel = parsedModel;
+            ensureCollectionModelAudioLibrary(collectionModel);
             localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
           }
+        }
+        if (data.audioLibrary && typeof data.audioLibrary === 'object') {
+          collectionModel.audioLibrary = normalizeAudioLibrary(data.audioLibrary);
+          localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         if (data.blockedCharactersByActor && typeof data.blockedCharactersByActor === 'object') {
           state.blockedCharactersByActor = data.blockedCharactersByActor;
@@ -1370,6 +1445,7 @@
         }
         if (!collectionModel.videos.length && VIDEOS.length) {
           collectionModel = migrateLegacyVideosToModel(VIDEOS);
+          ensureCollectionModelAudioLibrary(collectionModel);
           localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         buildAutoMarathonPlaylist();
@@ -1427,8 +1503,8 @@
           universeMemberships: state.universeMemberships,
           videos: VIDEOS,
           collectionModel,
-          blockedCharactersByActor: state.blockedCharactersByActor,
-          audioLibrary: state.audioLibrary
+          audioLibrary: collectionModel.audioLibrary,
+          blockedCharactersByActor: state.blockedCharactersByActor
         });
       } catch (err) {
         console.warn('No se pudo guardar en Firebase.', err);
@@ -5644,6 +5720,34 @@
       });
     }
 
+    function renderAudioGalleryView() {
+      viewAudioGallery.innerHTML = `
+        <section class="mock-shell">
+          <h2>Galería de audios</h2>
+          <div class="mock-row">
+            <button class="neon-btn toon-btn" data-audio-folder="voces" style="min-height: 140px; min-width: 220px;">📁 VOCES</button>
+            <button class="neon-btn toon-btn" data-audio-folder="fondos" style="min-height: 140px; min-width: 220px;">📁 FONDOS</button>
+          </div>
+        </section>
+      `;
+
+      viewAudioGallery.querySelector('[data-audio-folder="voces"]')?.addEventListener('click', () => changeView('audioVoces'));
+      viewAudioGallery.querySelector('[data-audio-folder="fondos"]')?.addEventListener('click', () => changeView('audioFondos'));
+    }
+
+    function renderAudioCategoryView(category) {
+      const isVoces = category === 'voces';
+      const title = isVoces ? 'VOCES' : 'FONDOS';
+      const targetView = isVoces ? viewAudioVoces : viewAudioFondos;
+      targetView.innerHTML = `
+        <section class="mock-shell">
+          <h2>${title}</h2>
+          <p class="muted">Próximamente podrás gestionar y reproducir audios de ${title.toLowerCase()}.</p>
+          <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
+        </section>
+      `;
+      targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
+    }
 
     function cssSafe(text) {
       return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
@@ -5764,6 +5868,9 @@
       viewStats.classList.toggle('active', next === 'stats');
       viewConfig.classList.toggle('active', next === 'config');
       viewCharacterProfile.classList.toggle('active', next === 'characterProfile');
+      viewAudioGallery.classList.toggle('active', next === 'audioGallery');
+      viewAudioVoces.classList.toggle('active', next === 'audioVoces');
+      viewAudioFondos.classList.toggle('active', next === 'audioFondos');
       document.querySelectorAll('.sidebar-nav .sidebar-item').forEach(btn => btn.classList.remove('active'));
       const activeNavByView = {
         map: navUniverses,
@@ -5771,7 +5878,10 @@
         characterProfile: navIndice,
         indice: navIndice,
         actores: navActores,
-        maraton: navMaraton
+        maraton: navMaraton,
+        audioGallery: navGaleriaAudios,
+        audioVoces: navGaleriaAudios,
+        audioFondos: navGaleriaAudios
       };
       activeNavByView[next]?.classList.add('active');
 
@@ -5790,6 +5900,9 @@
       if (next === 'stats') renderStatsView();
       if (next === 'config') renderConfigView();
       if (next === 'characterProfile') renderCharacterProfile(state.characterProfileId);
+      if (next === 'audioGallery') renderAudioGalleryView();
+      if (next === 'audioVoces') renderAudioCategoryView('voces');
+      if (next === 'audioFondos') renderAudioCategoryView('fondos');
     }
 
     toggleSidebar.onclick = () => {
@@ -5803,6 +5916,7 @@
     navIndice.onclick = () => changeView('indice');
     navActores.onclick = () => changeView('actores');
     navMaraton.onclick = () => changeView('maraton');
+    navGaleriaAudios.onclick = () => changeView('audioGallery');
 
     state.universeNodes = loadUniverseNodesFromStorage();
     syncFavoriteUniverseSetFromNodes();
