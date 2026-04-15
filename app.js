@@ -89,6 +89,7 @@
     const WORLD_ORBIT_BASE_RADIUS = 190;
     const WORLD_ORBIT_MIN_CENTER_DISTANCE = 230;
     let firebaseDb = null;
+    let firebaseStorage = null;
     let cloudSyncTimer = null;
     let collectionModel = {
       actors: [],
@@ -1194,7 +1195,99 @@
       if (!window.firebase) return false;
       const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
       firebaseDb = app.database();
+      firebaseStorage = typeof app.storage === 'function' ? app.storage() : null;
       return true;
+    }
+
+    function getVideoStoragePath(video) {
+      return String(video?.storagePath || video?.storage_path || '').trim();
+    }
+
+    function persistVideosLocally(nextVideos, nextModel) {
+      VIDEOS.splice(0, VIDEOS.length, ...nextVideos);
+      collectionModel = parseModelFromStorage(nextModel) || createEmptyCollectionModel();
+      localStorage.setItem(VIDEOS_STORAGE_KEY, JSON.stringify(VIDEOS));
+      localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
+      buildAutoMarathonPlaylist();
+    }
+
+    async function deleteUsedAudio(videoId) {
+      const targetVideo = VIDEOS.find((video) => video.id === videoId);
+      if (!targetVideo) throw new Error('No encontramos el audio seleccionado.');
+      const storagePath = getVideoStoragePath(targetVideo);
+      if (!storagePath) throw new Error('Este audio no tiene storagePath, no se puede eliminar de Firebase Storage.');
+      if (!firebaseStorage) throw new Error('Firebase Storage no está disponible en esta sesión.');
+
+      const nextVideos = VIDEOS.filter((video) => video.id !== videoId);
+      const nextModel = mergeModelWithLegacyVideos(collectionModel, nextVideos);
+
+      await firebaseStorage.ref(storagePath).delete();
+      if (firebaseDb) {
+        await firebaseDb.ref(CLOUD_STORAGE_PATH).update({
+          updatedAt: Date.now(),
+          videos: nextVideos,
+          collectionModel: nextModel
+        });
+      }
+
+      persistVideosLocally(nextVideos, nextModel);
+      renderMapView();
+      if (state.universe) renderUniverseView();
+      renderActoresView();
+      renderIndiceView();
+    }
+
+    function openMarkAsUsedModal(videoId) {
+      const video = VIDEOS.find((item) => item.id === videoId);
+      if (!video) return;
+      const actorName = video.actor_de_doblaje || 'Sin actor';
+      const characterName = video.personaje || 'Sin personaje';
+
+      const modal = document.createElement('section');
+      modal.className = 'detail-modal';
+      modal.innerHTML = `
+        <article class="detail-content mark-used-modal">
+          <h3 class="section-title">Marcar audio como usado</h3>
+          <p class="mark-used-modal__text">
+            Vas a marcar como usado el audio de <strong>${escapeHtml(actorName)}</strong> para <strong>${escapeHtml(characterName)}</strong>.
+            Esta acción borrará el archivo <strong>definitivamente</strong> de Firebase Storage y eliminará su metadata asociada.
+          </p>
+          <div class="actions">
+            <button type="button" class="neon-btn" data-modal-cancel-used>Cancelar</button>
+            <button type="button" class="neon-btn neon-btn--primary" data-modal-confirm-used>✅ Confirmar eliminación</button>
+          </div>
+        </article>
+      `;
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+
+      modal.querySelector('[data-modal-cancel-used]')?.addEventListener('click', () => modal.remove());
+      modal.querySelector('[data-modal-confirm-used]')?.addEventListener('click', async (event) => {
+        const confirmBtn = event.currentTarget;
+        confirmBtn.disabled = true;
+        const feedbackEl = document.getElementById('indiceCharacterFeedback');
+        if (feedbackEl) {
+          feedbackEl.style.color = '#b8ecff';
+          feedbackEl.textContent = 'Eliminando audio usado...';
+        }
+        try {
+          await deleteUsedAudio(videoId);
+          if (feedbackEl) {
+            feedbackEl.style.color = '#9ff7c8';
+            feedbackEl.textContent = 'Audio marcado como usado y eliminado correctamente.';
+          }
+          modal.remove();
+        } catch (err) {
+          console.error('Error eliminando audio usado:', err);
+          if (feedbackEl) {
+            feedbackEl.style.color = '#ffb6b6';
+            feedbackEl.textContent = err?.message || 'No se pudo eliminar el audio de Firebase. No se modificó la vista local.';
+          }
+          confirmBtn.disabled = false;
+        }
+      });
     }
 
     async function loadFromFirebase() {
@@ -4194,7 +4287,16 @@
                       <img src="${getActorCardThumbnail(item.video, item.actorName)}" alt="Miniatura de ${item.actorName} como ${focusedCharacter}" loading="lazy" onerror="this.onerror=null;this.src='${createPlaceholderCover(item.actorName)}';this.dataset.fallback='true';">
                       <div class="meta">
                         <h3><button type="button" class="actor-name-btn" data-open-actor-profile="${item.actorName}" aria-label="Abrir perfil de ${item.actorName}">${item.actorName}</button> <button type="button" class="neon-btn add-greeting-btn actor-add-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar otro video para ${item.actorName}">+</button></h3>
-                        <p><button type="button" class="neon-btn" data-open-video="${item.video.id}">▶ Ver video</button></p>
+                        <div class="character-audio-actions">
+                          <button type="button" class="neon-btn" data-open-video="${item.video.id}">▶ Ver video</button>
+                          <button
+                            type="button"
+                            class="neon-btn audio-used-btn"
+                            data-mark-used-video="${item.video.id}"
+                            aria-label="Marcar como usado y borrar definitivamente el audio de ${item.actorName}"
+                            title="Marcar audio como usado"
+                          >✅</button>
+                        </div>
                       </div>
                     </article>
                   `).join('') || '<p class="muted">No hay actores asociados para este personaje.</p>'}
@@ -4329,6 +4431,14 @@
           btn.addEventListener('click', () => {
              const videoId = btn.dataset.openVideo || btn.dataset.openVideoModal;
              openVideoDetail(videoId);
+          });
+        });
+        viewIndice.querySelectorAll('[data-mark-used-video]').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const videoId = btn.dataset.markUsedVideo;
+            if (!videoId) return;
+            openMarkAsUsedModal(videoId);
           });
         });
         viewIndice.querySelectorAll('[data-open-actor-profile]').forEach((btn) => {
