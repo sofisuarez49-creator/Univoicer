@@ -5853,6 +5853,12 @@
           <p class="muted">Próximamente podrás gestionar y reproducir audios de ${title.toLowerCase()}.</p>
           <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
         </section>
+        <section class="panel">
+          <h3>Gestión de Voces y Fondos</h3>
+          ${feedback}
+          ${renderAudioCategoryView('voces', 'Voces')}
+          ${renderAudioCategoryView('fondos', 'Fondos')}
+        </section>
       `;
       targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
     }
