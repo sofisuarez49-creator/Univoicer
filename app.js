@@ -73,9 +73,11 @@
       showInteruniversalConnections: false,
       audioLibrary: {
         voces: [],
-        fondos: [],
-        editing: null,
-        feedback: ''
+        fondos: []
+      },
+      uploadStatusByCategory: {
+        voces: { loading: false, error: '', success: '' },
+        fondos: { loading: false, error: '', success: '' }
       }
     };
     const UNIVERSES_STORAGE_KEY = 'universes_map_v1';
@@ -83,6 +85,7 @@
     const COLLECTION_MODEL_STORAGE_KEY = 'collection_model_v1';
     const MARATHON_STORAGE_KEY = 'marathon_state_v1';
     const BLOCKED_CHARACTERS_STORAGE_KEY = 'blocked_characters_by_actor_v1';
+    const AUDIO_LIBRARY_STORAGE_KEY = 'audio_library_v1';
     const UNIVERSE_MEMBERSHIPS_STORAGE_KEY = 'universe_memberships_v1';
     const UNIVERSES_UPDATED_AT_KEY = 'universes_updated_at_v1';
     const CLOUD_STORAGE_PATH = 'univoicerData/main';
@@ -95,13 +98,9 @@
     const WORLD_ORBIT_BASE_RADIUS = 190;
     const WORLD_ORBIT_MIN_CENTER_DISTANCE = 230;
     let firebaseDb = null;
+    let firebaseStorage = null;
     let cloudSyncTimer = null;
-    let collectionModel = {
-      actors: [],
-      characters: [],
-      universes: [],
-      videos: []
-    };
+    let collectionModel = createEmptyCollectionModel();
 
     let marathonPlayer = null;
     let marathonPlayerReady = false;
@@ -113,6 +112,7 @@
     const navIndice = document.getElementById('navIndice');
     const navActores = document.getElementById('navActores');
     const navMaraton = document.getElementById('navMaraton');
+    const navGaleriaAudios = document.getElementById('navGaleriaAudios');
     const viewInicio = document.getElementById('viewInicio');
     const viewMap = document.getElementById('viewMap');
     const viewUniverse = document.getElementById('viewUniverse');
@@ -128,6 +128,9 @@
     const viewStats = document.getElementById('viewStats');
     const viewConfig = document.getElementById('viewConfig');
     const viewCharacterProfile = document.getElementById('viewCharacterProfile');
+    const viewAudioGallery = document.getElementById('viewAudioGallery');
+    const viewAudioVoces = document.getElementById('viewAudioVoces');
+    const viewAudioFondos = document.getElementById('viewAudioFondos');
 
     function rarityClass(rareza) {
       return `rare-${rareza.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
@@ -276,8 +279,73 @@
         characters: [],
         universes: [],
         videos: [],
-        worldMemberships: []
+        worldMemberships: [],
+        audioLibrary: createEmptyAudioLibrary()
       };
+    }
+
+    function createEmptyAudioLibrary() {
+      return {
+        voces: [],
+        fondos: []
+      };
+    }
+
+    function normalizeAudioTimestamp(value, fallback) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return new Date(numeric).toISOString();
+      }
+      const text = String(value || '').trim();
+      if (text) {
+        const parsed = Date.parse(text);
+        if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+      }
+      return fallback;
+    }
+
+    function normalizeAudioLibraryItem(rawItem, fallbackCategory, index) {
+      if (!rawItem || typeof rawItem !== 'object') return null;
+      const validCategory = rawItem.category === 'voces' || rawItem.category === 'fondos'
+        ? rawItem.category
+        : fallbackCategory;
+      const createdAt = normalizeAudioTimestamp(rawItem.createdAt, new Date().toISOString());
+      const updatedAt = normalizeAudioTimestamp(rawItem.updatedAt, createdAt);
+      const parsedDurationMs = Number(rawItem.durationMs);
+
+      return {
+        id: String(rawItem.id || `audio-${validCategory}-${Date.now()}-${index}`),
+        category: validCategory,
+        name: String(rawItem.name || '').trim(),
+        storagePath: String(rawItem.storagePath || '').trim(),
+        downloadURL: String(rawItem.downloadURL || '').trim(),
+        ...(Number.isFinite(parsedDurationMs) && parsedDurationMs >= 0 ? { durationMs: parsedDurationMs } : {}),
+        createdAt,
+        updatedAt
+      };
+    }
+
+    function normalizeAudioLibrary(rawAudioLibrary) {
+      const empty = createEmptyAudioLibrary();
+      if (!rawAudioLibrary || typeof rawAudioLibrary !== 'object') return empty;
+
+      const normalizeCategoryList = (rawList, fallbackCategory) => (
+        (Array.isArray(rawList) ? rawList : [])
+          .map((item, index) => normalizeAudioLibraryItem(item, fallbackCategory, index))
+          .filter(Boolean)
+      );
+
+      return {
+        voces: normalizeCategoryList(rawAudioLibrary.voces, 'voces'),
+        fondos: normalizeCategoryList(rawAudioLibrary.fondos, 'fondos')
+      };
+    }
+
+    function ensureCollectionModelAudioLibrary(model) {
+      if (!model || typeof model !== 'object') return createEmptyAudioLibrary();
+      const normalizedAudioLibrary = normalizeAudioLibrary(model.audioLibrary);
+      model.audioLibrary = normalizedAudioLibrary;
+      return normalizedAudioLibrary;
     }
 
     function parseModelFromStorage(rawModel) {
@@ -330,11 +398,13 @@
             }))
             .filter(item => item.worldUniverseId && item.parentUniverseId)
             .filter(item => rawUniverseIds.has(item.worldUniverseId) && rawUniverseIds.has(item.parentUniverseId))
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(rawModel.audioLibrary)
       };
     }
 
     function saveCollectionModel() {
+      ensureCollectionModelAudioLibrary(collectionModel);
       localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
       scheduleCloudSync();
     }
@@ -472,7 +542,8 @@
               parentUniverseId: String(item.parentUniverseId || '')
             }))
             .filter((item) => item.worldUniverseId && item.parentUniverseId)
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(baseModel.audioLibrary)
       };
 
       const actorMap = new Map(model.actors.map((actor) => [normalizeEntityName(actor.name), actor]));
@@ -1037,6 +1108,7 @@
 
     function syncCollectionModelWithVideos(preserveActorsFromModel = collectionModel) {
       const nextModel = migrateLegacyVideosToModel(VIDEOS);
+      nextModel.audioLibrary = normalizeAudioLibrary(preserveActorsFromModel?.audioLibrary);
       const actorNameToActor = new Map(
         (nextModel.actors || []).map((actor) => [normalizeEntityName(actor.name), actor])
       );
@@ -1186,13 +1258,131 @@
       buildAutoMarathonPlaylist();
     }
 
+
+    function normalizeAudioLibrary(rawAudioLibrary) {
+      const base = { voces: [], fondos: [] };
+      if (!rawAudioLibrary || typeof rawAudioLibrary !== 'object') return base;
+
+      const normalizeCategory = (value) => {
+        if (!Array.isArray(value)) return [];
+        return value
+          .filter(item => item && typeof item === 'object')
+          .map((item) => ({
+            id: String(item.id || `audio-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+            name: String(item.name || 'Archivo sin nombre'),
+            path: String(item.path || ''),
+            url: String(item.url || ''),
+            contentType: String(item.contentType || 'audio/mpeg'),
+            size: Number(item.size) || 0,
+            createdAt: Number(item.createdAt) || Date.now()
+          }));
+      };
+
+      return {
+        voces: normalizeCategory(rawAudioLibrary.voces),
+        fondos: normalizeCategory(rawAudioLibrary.fondos)
+      };
+    }
+
+    function loadAudioLibraryFromStorage() {
+      try {
+        const raw = localStorage.getItem(AUDIO_LIBRARY_STORAGE_KEY);
+        if (!raw) return normalizeAudioLibrary(null);
+        return normalizeAudioLibrary(JSON.parse(raw));
+      } catch (_) {
+        return normalizeAudioLibrary(null);
+      }
+    }
+
+    function saveAudioLibrary() {
+      localStorage.setItem(AUDIO_LIBRARY_STORAGE_KEY, JSON.stringify(state.audioLibrary));
+      scheduleCloudSync();
+    }
+
+    function setAudioUploadStatus(category, patch) {
+      const current = state.uploadStatusByCategory?.[category] || { loading: false, error: '', success: '' };
+      state.uploadStatusByCategory[category] = {
+        loading: Boolean(typeof patch.loading === 'boolean' ? patch.loading : current.loading),
+        error: patch.error !== undefined ? String(patch.error || '') : current.error,
+        success: patch.success !== undefined ? String(patch.success || '') : current.success
+      };
+      if (state.view === 'config') renderConfigView();
+    }
+
+    function validateAudioFile(file) {
+      const MAX_AUDIO_UPLOAD_BYTES = 15 * 1024 * 1024;
+      if (!file) return 'No se recibió archivo.';
+      if (!String(file.type || '').startsWith('audio/')) return 'Solo se permiten archivos de audio.';
+      if (file.size > MAX_AUDIO_UPLOAD_BYTES) return 'El archivo supera el límite de 15 MB.';
+      return '';
+    }
+
+    async function uploadAudioFileForCategory(file, category) {
+      const error = validateAudioFile(file);
+      if (error) throw new Error(error);
+      if (!firebaseStorage) throw new Error('Storage no está inicializado.');
+
+      const safeName = cssSafe(file.name.replace(/\.[^.]+$/, '') || 'audio');
+      const extension = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] || 'bin').toLowerCase();
+      const folder = category === 'fondos' ? 'fondos' : 'voces';
+      const uniqueId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const path = `audioLibrary/${folder}/${uniqueId}-${safeName}.${extension}`;
+      const ref = firebaseStorage.ref(path);
+      const snapshot = await ref.put(file, {
+        contentType: file.type,
+        customMetadata: {
+          category: folder,
+          originalName: file.name
+        }
+      });
+      const url = await snapshot.ref.getDownloadURL();
+
+      return {
+        id: uniqueId,
+        name: file.name,
+        path,
+        url,
+        contentType: file.type || 'audio/mpeg',
+        size: Number(file.size) || 0,
+        createdAt: Date.now()
+      };
+    }
+
+    async function handleAudioLibraryFileSelected(event, category) {
+      const file = event.target?.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      setAudioUploadStatus(category, { loading: true, error: '', success: '' });
+      try {
+        const metadata = await uploadAudioFileForCategory(file, category);
+        const current = Array.isArray(state.audioLibrary[category]) ? state.audioLibrary[category] : [];
+        state.audioLibrary[category] = [metadata, ...current]
+          .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+        saveAudioLibrary();
+        setAudioUploadStatus(category, {
+          loading: false,
+          success: `Archivo "${metadata.name}" subido correctamente.`,
+          error: ''
+        });
+      } catch (err) {
+        setAudioUploadStatus(category, {
+          loading: false,
+          error: err?.message || 'No se pudo subir el archivo.',
+          success: ''
+        });
+      }
+    }
+
     function hydrateModelWithFallback() {
       const storedModel = loadCollectionModelFromStorage();
       if (storedModel) {
         collectionModel = storedModel;
+        ensureCollectionModelAudioLibrary(collectionModel);
         return;
       }
       collectionModel = migrateLegacyVideosToModel(VIDEOS);
+      ensureCollectionModelAudioLibrary(collectionModel);
       saveCollectionModel();
     }
 
@@ -1200,35 +1390,99 @@
       if (!window.firebase) return false;
       const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
       firebaseDb = app.database();
+      firebaseStorage = app.storage?.() || null;
       return true;
     }
 
-    function normalizeAudioCategoryItems(items = []) {
-      if (!Array.isArray(items)) return [];
-      return items
-        .filter(item => item && typeof item === 'object')
-        .map((item, index) => ({
-          id: String(item.id || `audio-${Date.now()}-${index}`),
-          title: String(item.title || item.nombre || item.name || item.filename || '').trim(),
-          tags: String(item.tags || '').trim(),
-          notes: String(item.notes || item.notas || '').trim(),
-          used: Boolean(item.used),
-          downloadURL: String(item.downloadURL || item.url || item.fileUrl || '').trim()
-        }));
+    function getVideoStoragePath(video) {
+      return String(video?.storagePath || video?.storage_path || '').trim();
     }
 
-    function parseAudioLibraryPayload(rawPayload) {
-      const payload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
-      const rawVoces = Array.isArray(payload.voces)
-        ? payload.voces
-        : Object.values(payload.voces || {});
-      const rawFondos = Array.isArray(payload.fondos)
-        ? payload.fondos
-        : Object.values(payload.fondos || {});
-      return {
-        voces: normalizeAudioCategoryItems(rawVoces),
-        fondos: normalizeAudioCategoryItems(rawFondos)
-      };
+    function persistVideosLocally(nextVideos, nextModel) {
+      VIDEOS.splice(0, VIDEOS.length, ...nextVideos);
+      collectionModel = parseModelFromStorage(nextModel) || createEmptyCollectionModel();
+      localStorage.setItem(VIDEOS_STORAGE_KEY, JSON.stringify(VIDEOS));
+      localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
+      buildAutoMarathonPlaylist();
+    }
+
+    async function deleteUsedAudio(videoId) {
+      const targetVideo = VIDEOS.find((video) => video.id === videoId);
+      if (!targetVideo) throw new Error('No encontramos el audio seleccionado.');
+      const storagePath = getVideoStoragePath(targetVideo);
+      if (!storagePath) throw new Error('Este audio no tiene storagePath, no se puede eliminar de Firebase Storage.');
+      if (!firebaseStorage) throw new Error('Firebase Storage no está disponible en esta sesión.');
+
+      const nextVideos = VIDEOS.filter((video) => video.id !== videoId);
+      const nextModel = mergeModelWithLegacyVideos(collectionModel, nextVideos);
+
+      await firebaseStorage.ref(storagePath).delete();
+      if (firebaseDb) {
+        await firebaseDb.ref(CLOUD_STORAGE_PATH).update({
+          updatedAt: Date.now(),
+          videos: nextVideos,
+          collectionModel: nextModel
+        });
+      }
+
+      persistVideosLocally(nextVideos, nextModel);
+      renderMapView();
+      if (state.universe) renderUniverseView();
+      renderActoresView();
+      renderIndiceView();
+    }
+
+    function openMarkAsUsedModal(videoId) {
+      const video = VIDEOS.find((item) => item.id === videoId);
+      if (!video) return;
+      const actorName = video.actor_de_doblaje || 'Sin actor';
+      const characterName = video.personaje || 'Sin personaje';
+
+      const modal = document.createElement('section');
+      modal.className = 'detail-modal';
+      modal.innerHTML = `
+        <article class="detail-content mark-used-modal">
+          <h3 class="section-title">Marcar audio como usado</h3>
+          <p class="mark-used-modal__text">
+            Vas a marcar como usado el audio de <strong>${escapeHtml(actorName)}</strong> para <strong>${escapeHtml(characterName)}</strong>.
+            Esta acción borrará el archivo <strong>definitivamente</strong> de Firebase Storage y eliminará su metadata asociada.
+          </p>
+          <div class="actions">
+            <button type="button" class="neon-btn" data-modal-cancel-used>Cancelar</button>
+            <button type="button" class="neon-btn neon-btn--primary" data-modal-confirm-used>✅ Confirmar eliminación</button>
+          </div>
+        </article>
+      `;
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+
+      modal.querySelector('[data-modal-cancel-used]')?.addEventListener('click', () => modal.remove());
+      modal.querySelector('[data-modal-confirm-used]')?.addEventListener('click', async (event) => {
+        const confirmBtn = event.currentTarget;
+        confirmBtn.disabled = true;
+        const feedbackEl = document.getElementById('indiceCharacterFeedback');
+        if (feedbackEl) {
+          feedbackEl.style.color = '#b8ecff';
+          feedbackEl.textContent = 'Eliminando audio usado...';
+        }
+        try {
+          await deleteUsedAudio(videoId);
+          if (feedbackEl) {
+            feedbackEl.style.color = '#9ff7c8';
+            feedbackEl.textContent = 'Audio marcado como usado y eliminado correctamente.';
+          }
+          modal.remove();
+        } catch (err) {
+          console.error('Error eliminando audio usado:', err);
+          if (feedbackEl) {
+            feedbackEl.style.color = '#ffb6b6';
+            feedbackEl.textContent = err?.message || 'No se pudo eliminar el audio de Firebase. No se modificó la vista local.';
+          }
+          confirmBtn.disabled = false;
+        }
+      });
     }
 
     async function loadFromFirebase() {
@@ -1264,20 +1518,25 @@
           const parsedModel = parseModelFromStorage(data.collectionModel);
           if (parsedModel) {
             collectionModel = parsedModel;
+            ensureCollectionModelAudioLibrary(collectionModel);
             localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
           }
+        }
+        if (data.audioLibrary && typeof data.audioLibrary === 'object') {
+          collectionModel.audioLibrary = normalizeAudioLibrary(data.audioLibrary);
+          localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         if (data.blockedCharactersByActor && typeof data.blockedCharactersByActor === 'object') {
           state.blockedCharactersByActor = data.blockedCharactersByActor;
           localStorage.setItem(BLOCKED_CHARACTERS_STORAGE_KEY, JSON.stringify(state.blockedCharactersByActor));
         }
         if (data.audioLibrary && typeof data.audioLibrary === 'object') {
-          const parsedAudioLibrary = parseAudioLibraryPayload(data.audioLibrary);
-          state.audioLibrary.voces = parsedAudioLibrary.voces;
-          state.audioLibrary.fondos = parsedAudioLibrary.fondos;
+          state.audioLibrary = normalizeAudioLibrary(data.audioLibrary);
+          localStorage.setItem(AUDIO_LIBRARY_STORAGE_KEY, JSON.stringify(state.audioLibrary));
         }
         if (!collectionModel.videos.length && VIDEOS.length) {
           collectionModel = migrateLegacyVideosToModel(VIDEOS);
+          ensureCollectionModelAudioLibrary(collectionModel);
           localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         buildAutoMarathonPlaylist();
@@ -1335,11 +1594,8 @@
           universeMemberships: state.universeMemberships,
           videos: VIDEOS,
           collectionModel,
-          blockedCharactersByActor: state.blockedCharactersByActor,
-          audioLibrary: {
-            voces: state.audioLibrary.voces,
-            fondos: state.audioLibrary.fondos
-          }
+          audioLibrary: collectionModel.audioLibrary,
+          blockedCharactersByActor: state.blockedCharactersByActor
         });
       } catch (err) {
         console.warn('No se pudo guardar en Firebase.', err);
@@ -4237,7 +4493,16 @@
                       <img src="${getActorCardThumbnail(item.video, item.actorName)}" alt="Miniatura de ${item.actorName} como ${focusedCharacter}" loading="lazy" onerror="this.onerror=null;this.src='${createPlaceholderCover(item.actorName)}';this.dataset.fallback='true';">
                       <div class="meta">
                         <h3><button type="button" class="actor-name-btn" data-open-actor-profile="${item.actorName}" aria-label="Abrir perfil de ${item.actorName}">${item.actorName}</button> <button type="button" class="neon-btn add-greeting-btn actor-add-btn" data-add-greeting-actor="${item.actorName}" aria-label="Agregar otro video para ${item.actorName}">+</button></h3>
-                        <p><button type="button" class="neon-btn" data-open-video="${item.video.id}">▶ Ver video</button></p>
+                        <div class="character-audio-actions">
+                          <button type="button" class="neon-btn" data-open-video="${item.video.id}">▶ Ver video</button>
+                          <button
+                            type="button"
+                            class="neon-btn audio-used-btn"
+                            data-mark-used-video="${item.video.id}"
+                            aria-label="Marcar como usado y borrar definitivamente el audio de ${item.actorName}"
+                            title="Marcar audio como usado"
+                          >✅</button>
+                        </div>
                       </div>
                     </article>
                   `).join('') || '<p class="muted">No hay actores asociados para este personaje.</p>'}
@@ -4372,6 +4637,14 @@
           btn.addEventListener('click', () => {
              const videoId = btn.dataset.openVideo || btn.dataset.openVideoModal;
              openVideoDetail(videoId);
+          });
+        });
+        viewIndice.querySelectorAll('[data-mark-used-video]').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const videoId = btn.dataset.markUsedVideo;
+            if (!videoId) return;
+            openMarkAsUsedModal(videoId);
           });
         });
         viewIndice.querySelectorAll('[data-open-actor-profile]').forEach((btn) => {
@@ -5485,9 +5758,31 @@
     }
 
     function renderConfigView() {
-      const feedback = state.audioLibrary.feedback ? `<p class="muted">${state.audioLibrary.feedback}</p>` : '';
+      const categories = [
+        { key: 'voces', label: 'Voces', buttonLabel: 'AGREGAR VOZ' },
+        { key: 'fondos', label: 'Fondos', buttonLabel: 'AGREGAR FONDO' }
+      ];
+
+      const renderAudioItems = (category) => {
+        const items = Array.isArray(state.audioLibrary?.[category]) ? state.audioLibrary[category] : [];
+        if (!items.length) return '<p class="muted">No hay archivos cargados aún.</p>';
+        return `
+          <ul class="audio-library-list">
+            ${items.map((item) => `
+              <li class="audio-library-item">
+                <div>
+                  <p class="audio-library-item-name">${escapeHtml(item.name || 'Archivo sin nombre')}</p>
+                  <p class="audio-library-item-meta">${Math.max(1, Math.round((Number(item.size) || 0) / 1024))} KB · ${new Date(Number(item.createdAt) || Date.now()).toLocaleString('es-AR')}</p>
+                </div>
+                <audio controls preload="none" src="${escapeHtml(item.url || '')}" aria-label="Reproducir ${escapeHtml(item.name || 'audio')}"></audio>
+              </li>
+            `).join('')}
+          </ul>
+        `;
+      };
+
       viewConfig.innerHTML = `
-        <section class="mock-shell">
+        <section class="mock-shell audio-library-shell">
           <h2>Configuración</h2>
           <div class="mock-row">
             <button class="neon-btn toon-btn">Importar JSON</button>
@@ -5497,6 +5792,66 @@
               <div class="theme-toggle" aria-hidden="true"></div>
             </div>
           </div>
+          <div class="audio-library-grid">
+            ${categories.map(({ key, label, buttonLabel }) => {
+              const status = state.uploadStatusByCategory?.[key] || { loading: false, error: '', success: '' };
+              return `
+                <article class="audio-library-card mock-box">
+                  <div class="audio-library-header">
+                    <h3>${label}</h3>
+                    <button type="button" class="neon-btn" data-audio-trigger="${key}" ${status.loading ? 'disabled' : ''}>${status.loading ? 'SUBIENDO...' : buttonLabel}</button>
+                    <input type="file" accept="audio/*" data-audio-input="${key}" class="audio-library-input" hidden>
+                  </div>
+                  <p class="audio-library-feedback ${status.error ? 'is-error' : status.success ? 'is-success' : ''}" aria-live="polite">${escapeHtml(status.error || status.success || '')}</p>
+                  ${renderAudioItems(key)}
+                </article>
+              `;
+            }).join('')}
+          </div>
+        </section>
+      `;
+
+      viewConfig.querySelectorAll('[data-audio-trigger]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const category = btn.dataset.audioTrigger;
+          const input = viewConfig.querySelector(`[data-audio-input="${category}"]`);
+          input?.click();
+        });
+      });
+
+      viewConfig.querySelectorAll('[data-audio-input]').forEach((input) => {
+        input.addEventListener('change', (event) => {
+          const category = input.dataset.audioInput;
+          if (!category) return;
+          handleAudioLibraryFileSelected(event, category);
+        });
+      });
+    }
+
+    function renderAudioGalleryView() {
+      viewAudioGallery.innerHTML = `
+        <section class="mock-shell">
+          <h2>Galería de audios</h2>
+          <div class="mock-row">
+            <button class="neon-btn toon-btn" data-audio-folder="voces" style="min-height: 140px; min-width: 220px;">📁 VOCES</button>
+            <button class="neon-btn toon-btn" data-audio-folder="fondos" style="min-height: 140px; min-width: 220px;">📁 FONDOS</button>
+          </div>
+        </section>
+      `;
+
+      viewAudioGallery.querySelector('[data-audio-folder="voces"]')?.addEventListener('click', () => changeView('audioVoces'));
+      viewAudioGallery.querySelector('[data-audio-folder="fondos"]')?.addEventListener('click', () => changeView('audioFondos'));
+    }
+
+    function renderAudioCategoryView(category) {
+      const isVoces = category === 'voces';
+      const title = isVoces ? 'VOCES' : 'FONDOS';
+      const targetView = isVoces ? viewAudioVoces : viewAudioFondos;
+      targetView.innerHTML = `
+        <section class="mock-shell">
+          <h2>${title}</h2>
+          <p class="muted">Próximamente podrás gestionar y reproducir audios de ${title.toLowerCase()}.</p>
+          <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
         </section>
         <section class="panel">
           <h3>Gestión de Voces y Fondos</h3>
@@ -5505,127 +5860,7 @@
           ${renderAudioCategoryView('fondos', 'Fondos')}
         </section>
       `;
-      bindAudioCategoryHandlers();
-    }
-
-    function escapeHtml(value) {
-      return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    function getAudioItemUrl(item) {
-      return String(item?.downloadURL || '').trim();
-    }
-
-    function renderAudioCategoryView(categoryKey, label) {
-      const items = Array.isArray(state.audioLibrary[categoryKey]) ? state.audioLibrary[categoryKey] : [];
-      return `
-        <article class="audio-category-block">
-          <h4>${label}</h4>
-          <div class="audio-category-list">
-            ${items.map((item) => {
-              const isEditing = state.audioLibrary.editing === `${categoryKey}:${item.id}`;
-              const safeTitle = escapeHtml(item.title || 'Sin título');
-              const safeTags = escapeHtml(item.tags || '');
-              const safeNotes = escapeHtml(item.notes || '');
-              const audioUrl = getAudioItemUrl(item);
-              const safeAudioUrl = escapeHtml(audioUrl);
-              return `
-                <div class="audio-item-card" data-audio-category="${categoryKey}" data-audio-id="${escapeHtml(item.id)}">
-                  <div class="audio-item-main">
-                    <p class="audio-item-title">${safeTitle}</p>
-                    ${audioUrl ? `<audio controls preload="none" src="${safeAudioUrl}"></audio>` : '<p class="muted">Sin downloadURL en Storage.</p>'}
-                    ${isEditing ? `
-                      <div class="audio-edit-fields">
-                        <label>Título / nombre
-                          <input type="text" data-audio-field="title" value="${safeTitle}" />
-                        </label>
-                        <label>Etiquetas (opcional)
-                          <input type="text" data-audio-field="tags" value="${safeTags}" />
-                        </label>
-                        <label>Notas (opcional)
-                          <textarea rows="2" data-audio-field="notes">${safeNotes}</textarea>
-                        </label>
-                      </div>
-                    ` : `
-                      <p class="muted">Etiquetas: ${safeTags || '—'}</p>
-                      <p class="muted">Notas: ${safeNotes || '—'}</p>
-                    `}
-                  </div>
-                  <div class="audio-item-actions">
-                    <button class="neon-btn toon-btn" type="button" data-audio-action="edit">${isEditing ? 'Cancelar' : 'Editar'}</button>
-                    <button class="neon-btn toon-btn" type="button" data-audio-action="save" ${isEditing ? '' : 'disabled'}>Guardar cambios</button>
-                    ${audioUrl ? `<a class="neon-btn toon-btn" href="${safeAudioUrl}" data-audio-action="download" download>Descargar</a>` : '<button class="neon-btn toon-btn" type="button" disabled>Descargar</button>'}
-                    <button class="neon-btn toon-btn audio-used-btn ${item.used ? 'is-used' : ''}" type="button" data-audio-action="used" title="Marcar como usado">${item.used ? '✅ Usado' : '✔️ Marcar usado'}</button>
-                  </div>
-                </div>
-              `;
-            }).join('') || '<p class="muted">No hay ítems en esta categoría.</p>'}
-          </div>
-        </article>
-      `;
-    }
-
-    function bindAudioCategoryHandlers() {
-      viewConfig.querySelectorAll('[data-audio-action]').forEach((control) => {
-        control.addEventListener('click', (event) => {
-          const action = control.dataset.audioAction;
-          const card = event.currentTarget.closest('[data-audio-category][data-audio-id]');
-          if (!card || !action) return;
-          const category = card.dataset.audioCategory;
-          const itemId = card.dataset.audioId;
-          const list = state.audioLibrary[category];
-          if (!Array.isArray(list)) return;
-          const itemIndex = list.findIndex((item) => String(item.id) === String(itemId));
-          if (itemIndex < 0) return;
-          const key = `${category}:${itemId}`;
-
-          if (action === 'edit') {
-            state.audioLibrary.editing = state.audioLibrary.editing === key ? null : key;
-            state.audioLibrary.feedback = '';
-            renderConfigView();
-            return;
-          }
-
-          if (action === 'save') {
-            if (state.audioLibrary.editing !== key) return;
-            const titleInput = card.querySelector('[data-audio-field="title"]');
-            const tagsInput = card.querySelector('[data-audio-field="tags"]');
-            const notesInput = card.querySelector('[data-audio-field="notes"]');
-            const nextTitle = String(titleInput?.value || '').trim();
-            if (!nextTitle) {
-              state.audioLibrary.feedback = 'El título/nombre es obligatorio para guardar.';
-              renderConfigView();
-              return;
-            }
-            list[itemIndex] = {
-              ...list[itemIndex],
-              title: nextTitle,
-              tags: String(tagsInput?.value || '').trim(),
-              notes: String(notesInput?.value || '').trim()
-            };
-            state.audioLibrary.editing = null;
-            state.audioLibrary.feedback = 'Cambios guardados correctamente.';
-            scheduleCloudSync();
-            renderConfigView();
-            return;
-          }
-
-          if (action === 'used') {
-            list[itemIndex] = {
-              ...list[itemIndex],
-              used: !list[itemIndex].used
-            };
-            state.audioLibrary.feedback = 'Estado de uso actualizado.';
-            scheduleCloudSync();
-            renderConfigView();
-          }
-        });
-      });
+      targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
     }
 
     function cssSafe(text) {
@@ -5747,6 +5982,9 @@
       viewStats.classList.toggle('active', next === 'stats');
       viewConfig.classList.toggle('active', next === 'config');
       viewCharacterProfile.classList.toggle('active', next === 'characterProfile');
+      viewAudioGallery.classList.toggle('active', next === 'audioGallery');
+      viewAudioVoces.classList.toggle('active', next === 'audioVoces');
+      viewAudioFondos.classList.toggle('active', next === 'audioFondos');
       document.querySelectorAll('.sidebar-nav .sidebar-item').forEach(btn => btn.classList.remove('active'));
       const activeNavByView = {
         map: navUniverses,
@@ -5754,7 +5992,10 @@
         characterProfile: navIndice,
         indice: navIndice,
         actores: navActores,
-        maraton: navMaraton
+        maraton: navMaraton,
+        audioGallery: navGaleriaAudios,
+        audioVoces: navGaleriaAudios,
+        audioFondos: navGaleriaAudios
       };
       activeNavByView[next]?.classList.add('active');
 
@@ -5773,6 +6014,9 @@
       if (next === 'stats') renderStatsView();
       if (next === 'config') renderConfigView();
       if (next === 'characterProfile') renderCharacterProfile(state.characterProfileId);
+      if (next === 'audioGallery') renderAudioGalleryView();
+      if (next === 'audioVoces') renderAudioCategoryView('voces');
+      if (next === 'audioFondos') renderAudioCategoryView('fondos');
     }
 
     toggleSidebar.onclick = () => {
@@ -5786,6 +6030,7 @@
     navIndice.onclick = () => changeView('indice');
     navActores.onclick = () => changeView('actores');
     navMaraton.onclick = () => changeView('maraton');
+    navGaleriaAudios.onclick = () => changeView('audioGallery');
 
     state.universeNodes = loadUniverseNodesFromStorage();
     syncFavoriteUniverseSetFromNodes();
@@ -5794,6 +6039,7 @@
     loadMarathonStateFromStorage();
     hydrateModelWithFallback();
     state.blockedCharactersByActor = loadBlockedCharactersFromStorage();
+    state.audioLibrary = loadAudioLibraryFromStorage();
     sanitizeUniverseMembershipsAndPersist();
     syncBlockedCharactersToVideoPlaceholders();
 
