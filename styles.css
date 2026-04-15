@@ -1655,36 +1655,37 @@
         0 0 22px rgba(190, 208, 233, .32);
     }
     .actor-card--consagrado {
-      border-color: rgba(186, 88, 95, .86);
+      border-color: rgba(226, 188, 105, .9);
       background:
-        radial-gradient(circle at 14% 12%, rgba(255, 173, 167, .22), transparent 30%),
-        radial-gradient(circle at 86% 14%, rgba(122, 41, 48, .42), transparent 30%),
-        linear-gradient(162deg, rgba(78, 16, 28, .95), rgba(54, 8, 16, .96), rgba(20, 6, 8, .96));
+        radial-gradient(circle at 12% 14%, rgba(255, 242, 191, .44), transparent 34%),
+        radial-gradient(circle at 84% 18%, rgba(201, 142, 42, .36), transparent 30%),
+        linear-gradient(160deg, rgba(255, 223, 131, .34), rgba(181, 128, 32, .42), rgba(57, 40, 12, .9));
       box-shadow:
-        0 12px 24px rgba(12, 5, 8, .65),
-        0 0 0 1px rgba(222, 132, 136, .24) inset,
-        0 0 20px rgba(149, 38, 46, .35);
+        0 12px 24px rgba(18, 12, 3, .56),
+        0 0 0 1px rgba(255, 223, 143, .34) inset,
+        0 0 22px rgba(232, 182, 83, .35);
     }
     .actor-card--destacado {
-      border-color: rgba(186, 146, 74, .88);
+      border-color: rgba(214, 94, 101, .9);
       background:
-        radial-gradient(circle at 14% 12%, rgba(255, 223, 146, .34), transparent 32%),
-        radial-gradient(circle at 84% 12%, rgba(156, 96, 28, .32), transparent 28%),
-        linear-gradient(164deg, rgba(98, 67, 18, .96), rgba(73, 49, 12, .95), rgba(26, 17, 6, .96));
+        radial-gradient(circle at 14% 12%, rgba(255, 188, 184, .34), transparent 32%),
+        radial-gradient(circle at 84% 12%, rgba(145, 42, 47, .34), transparent 28%),
+        linear-gradient(164deg, rgba(162, 35, 48, .96), rgba(108, 20, 33, .95), rgba(37, 9, 14, .96));
       box-shadow:
-        0 12px 24px rgba(12, 8, 2, .58),
-        0 0 0 1px rgba(236, 199, 117, .22) inset,
-        0 0 21px rgba(210, 155, 62, .32);
+        0 12px 24px rgba(16, 5, 7, .62),
+        0 0 0 1px rgba(243, 147, 154, .24) inset,
+        0 0 21px rgba(194, 56, 69, .38);
     }
     .actor-card--desbloqueado {
-      border-color: rgba(122, 196, 255, .46);
+      border-color: rgba(108, 186, 255, .8);
       background:
-        radial-gradient(circle at 14% 12%, rgba(255, 243, 150, .14), transparent 30%),
-        radial-gradient(circle at 88% 8%, rgba(255, 166, 87, .16), transparent 28%),
-        linear-gradient(165deg, rgba(12, 24, 48, .94), rgba(19, 37, 70, .84));
+        radial-gradient(circle at 14% 12%, rgba(192, 232, 255, .26), transparent 30%),
+        radial-gradient(circle at 88% 8%, rgba(79, 142, 255, .26), transparent 28%),
+        linear-gradient(165deg, rgba(24, 58, 126, .95), rgba(20, 45, 98, .9), rgba(11, 24, 53, .92));
       box-shadow:
-        0 10px 18px rgba(2, 8, 24, .44),
-        0 0 0 1px rgba(180, 227, 255, .08) inset;
+        0 10px 18px rgba(2, 8, 24, .5),
+        0 0 0 1px rgba(163, 214, 255, .18) inset,
+        0 0 20px rgba(85, 155, 240, .34);
     }
     .actor-card--bloqueado {
       border-color: rgba(72, 76, 90, .84);
@@ -1711,12 +1712,12 @@
       text-shadow: 0 0 12px rgba(202, 218, 238, .78);
     }
     .actor-card--consagrado::after {
-      color: rgba(255, 197, 197, .9);
-      text-shadow: 0 0 12px rgba(219, 84, 93, .76);
+      color: rgba(255, 232, 177, .92);
+      text-shadow: 0 0 12px rgba(244, 186, 86, .76);
     }
     .actor-card--destacado::after {
-      color: rgba(255, 226, 160, .92);
-      text-shadow: 0 0 12px rgba(228, 169, 66, .7);
+      color: rgba(255, 194, 194, .92);
+      text-shadow: 0 0 12px rgba(212, 82, 92, .7);
     }
     .actor-card--bloqueado::after {
       color: rgba(161, 170, 191, .64);
@@ -1739,18 +1740,18 @@
         0 0 24px rgba(208, 222, 244, .48);
     }
     .actor-card--consagrado:hover {
-      border-color: rgba(217, 112, 119, .94);
+      border-color: rgba(246, 214, 143, .94);
       box-shadow:
-        0 14px 26px rgba(11, 4, 7, .72),
-        0 0 0 1px rgba(233, 136, 143, .32) inset,
-        0 0 24px rgba(174, 48, 58, .5);
+        0 14px 26px rgba(16, 10, 3, .72),
+        0 0 0 1px rgba(255, 219, 142, .34) inset,
+        0 0 24px rgba(236, 187, 83, .5);
     }
     .actor-card--destacado:hover {
-      border-color: rgba(224, 183, 95, .92);
+      border-color: rgba(235, 132, 138, .94);
       box-shadow:
-        0 14px 26px rgba(11, 7, 2, .68),
-        0 0 0 1px rgba(246, 212, 132, .3) inset,
-        0 0 24px rgba(224, 176, 79, .44);
+        0 14px 26px rgba(14, 5, 7, .72),
+        0 0 0 1px rgba(255, 177, 184, .3) inset,
+        0 0 24px rgba(211, 74, 87, .44);
     }
     .actor-card--bloqueado:hover {
       border-color: rgba(112, 122, 144, .9);
@@ -1766,9 +1767,6 @@
         0 0 0 1px rgba(226, 246, 255, .25) inset,
         0 0 30px rgba(102, 212, 255, .48),
         var(--accent-glow);
-      background:
-        radial-gradient(circle at 12% 10%, rgba(161, 233, 255, .24), transparent 34%),
-        linear-gradient(165deg, rgba(15, 35, 69, .96), rgba(16, 62, 104, .84));
       transform: translateY(-4px);
     }
     .actor-card-title {
@@ -1802,9 +1800,9 @@
       font-weight: 800;
     }
     .actor-card--tier-bloqueado .actor-card-tier { border-color: rgba(149, 170, 194, .5); color: #c5d5e6; }
-    .actor-card--tier-desbloqueado .actor-card-tier { border-color: rgba(133, 225, 179, .55); color: #b6f5d5; }
-    .actor-card--tier-destacado .actor-card-tier { border-color: rgba(119, 204, 255, .65); color: #b5e8ff; }
-    .actor-card--tier-consagrado .actor-card-tier { border-color: rgba(195, 154, 255, .68); color: #dfc8ff; }
+    .actor-card--tier-desbloqueado .actor-card-tier { border-color: rgba(122, 198, 255, .65); color: #c5eaff; }
+    .actor-card--tier-destacado .actor-card-tier { border-color: rgba(230, 126, 134, .72); color: #ffd0d4; }
+    .actor-card--tier-consagrado .actor-card-tier { border-color: rgba(243, 200, 108, .74); color: #ffe7b3; }
     .actor-card--tier-platinado .actor-card-tier {
       border-color: rgba(255, 218, 118, .75);
       color: #ffe8ad;
