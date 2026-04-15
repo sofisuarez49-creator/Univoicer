@@ -5090,7 +5090,7 @@
 
           <div class="actor-gallery mock-gap-lg">
             ${filteredActorSummaries.map((item, idx) => `
-              <button type="button" class="actor-card actor-card--tier-${item.tier.key} ${item.name === actor ? 'active' : ''}" data-actor-card="${item.name}">
+              <button type="button" class="actor-card actor-card--${item.tier.key} actor-card--tier-${item.tier.key} ${item.name === actor ? 'active' : ''}" data-actor-card="${item.name}">
                 <h3 class="actor-card-title">${item.name}</h3>
                 <p class="actor-card-tier actor-card-tier--${item.tier.key}">${item.tierLabel}</p>
                 <div class="actor-card-footer">
