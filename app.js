@@ -107,6 +107,7 @@
     const navIndice = document.getElementById('navIndice');
     const navActores = document.getElementById('navActores');
     const navMaraton = document.getElementById('navMaraton');
+    const navGaleriaAudios = document.getElementById('navGaleriaAudios');
     const viewInicio = document.getElementById('viewInicio');
     const viewMap = document.getElementById('viewMap');
     const viewUniverse = document.getElementById('viewUniverse');
@@ -122,6 +123,9 @@
     const viewStats = document.getElementById('viewStats');
     const viewConfig = document.getElementById('viewConfig');
     const viewCharacterProfile = document.getElementById('viewCharacterProfile');
+    const viewAudioGallery = document.getElementById('viewAudioGallery');
+    const viewAudioVoces = document.getElementById('viewAudioVoces');
+    const viewAudioFondos = document.getElementById('viewAudioFondos');
 
     function rarityClass(rareza) {
       return `rare-${rareza.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
@@ -5457,6 +5461,35 @@
       `;
     }
 
+    function renderAudioGalleryView() {
+      viewAudioGallery.innerHTML = `
+        <section class="mock-shell">
+          <h2>Galería de audios</h2>
+          <div class="mock-row">
+            <button class="neon-btn toon-btn" data-audio-folder="voces" style="min-height: 140px; min-width: 220px;">📁 VOCES</button>
+            <button class="neon-btn toon-btn" data-audio-folder="fondos" style="min-height: 140px; min-width: 220px;">📁 FONDOS</button>
+          </div>
+        </section>
+      `;
+
+      viewAudioGallery.querySelector('[data-audio-folder="voces"]')?.addEventListener('click', () => changeView('audioVoces'));
+      viewAudioGallery.querySelector('[data-audio-folder="fondos"]')?.addEventListener('click', () => changeView('audioFondos'));
+    }
+
+    function renderAudioCategoryView(category) {
+      const isVoces = category === 'voces';
+      const title = isVoces ? 'VOCES' : 'FONDOS';
+      const targetView = isVoces ? viewAudioVoces : viewAudioFondos;
+      targetView.innerHTML = `
+        <section class="mock-shell">
+          <h2>${title}</h2>
+          <p class="muted">Próximamente podrás gestionar y reproducir audios de ${title.toLowerCase()}.</p>
+          <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
+        </section>
+      `;
+      targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
+    }
+
     function cssSafe(text) {
       return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
     }
@@ -5576,6 +5609,9 @@
       viewStats.classList.toggle('active', next === 'stats');
       viewConfig.classList.toggle('active', next === 'config');
       viewCharacterProfile.classList.toggle('active', next === 'characterProfile');
+      viewAudioGallery.classList.toggle('active', next === 'audioGallery');
+      viewAudioVoces.classList.toggle('active', next === 'audioVoces');
+      viewAudioFondos.classList.toggle('active', next === 'audioFondos');
       document.querySelectorAll('.sidebar-nav .sidebar-item').forEach(btn => btn.classList.remove('active'));
       const activeNavByView = {
         map: navUniverses,
@@ -5583,7 +5619,10 @@
         characterProfile: navIndice,
         indice: navIndice,
         actores: navActores,
-        maraton: navMaraton
+        maraton: navMaraton,
+        audioGallery: navGaleriaAudios,
+        audioVoces: navGaleriaAudios,
+        audioFondos: navGaleriaAudios
       };
       activeNavByView[next]?.classList.add('active');
 
@@ -5602,6 +5641,9 @@
       if (next === 'stats') renderStatsView();
       if (next === 'config') renderConfigView();
       if (next === 'characterProfile') renderCharacterProfile(state.characterProfileId);
+      if (next === 'audioGallery') renderAudioGalleryView();
+      if (next === 'audioVoces') renderAudioCategoryView('voces');
+      if (next === 'audioFondos') renderAudioCategoryView('fondos');
     }
 
     toggleSidebar.onclick = () => {
@@ -5615,6 +5657,7 @@
     navIndice.onclick = () => changeView('indice');
     navActores.onclick = () => changeView('actores');
     navMaraton.onclick = () => changeView('maraton');
+    navGaleriaAudios.onclick = () => changeView('audioGallery');
 
     state.universeNodes = loadUniverseNodesFromStorage();
     syncFavoriteUniverseSetFromNodes();
