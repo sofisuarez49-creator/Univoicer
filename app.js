@@ -5847,17 +5847,29 @@
       const isVoces = category === 'voces';
       const title = isVoces ? 'VOCES' : 'FONDOS';
       const targetView = isVoces ? viewAudioVoces : viewAudioFondos;
+      const items = Array.isArray(state.audioLibrary?.[category]) ? state.audioLibrary[category] : [];
+
       targetView.innerHTML = `
         <section class="mock-shell">
           <h2>${title}</h2>
-          <p class="muted">Próximamente podrás gestionar y reproducir audios de ${title.toLowerCase()}.</p>
+          <p class="muted">Gestiona y reproduce tus audios cargados en la categoría ${title.toLowerCase()}.</p>
           <button class="neon-btn toon-btn" data-back-audio-gallery>← Volver a Galería de audios</button>
         </section>
         <section class="panel">
-          <h3>Gestión de Voces y Fondos</h3>
-          ${feedback}
-          ${renderAudioCategoryView('voces', 'Voces')}
-          ${renderAudioCategoryView('fondos', 'Fondos')}
+          <h3>Archivos de ${title}</h3>
+          ${items.length ? `
+            <ul class="audio-library-list">
+              ${items.map((item) => `
+                <li class="audio-library-item">
+                  <div>
+                    <p class="audio-library-item-name">${escapeHtml(item.name || 'Archivo sin nombre')}</p>
+                    <p class="audio-library-item-meta">${Math.max(1, Math.round((Number(item.size) || 0) / 1024))} KB · ${new Date(Number(item.createdAt) || Date.now()).toLocaleString('es-AR')}</p>
+                  </div>
+                  <audio controls preload="none" src="${escapeHtml(item.url || '')}" aria-label="Reproducir ${escapeHtml(item.name || 'audio')}"></audio>
+                </li>
+              `).join('')}
+            </ul>
+          ` : '<p class="muted">No hay archivos cargados aún en esta categoría.</p>'}
         </section>
       `;
       targetView.querySelector('[data-back-audio-gallery]')?.addEventListener('click', () => changeView('audioGallery'));
