@@ -1319,6 +1319,60 @@
       return '';
     }
 
+    function normalizeAudioUploadError(err) {
+      const rawMessage = String(err?.message || '').toLowerCase();
+      const firebaseCode = String(err?.code || '').toLowerCase();
+      const isCorsLikeError =
+        rawMessage.includes('cors') ||
+        rawMessage.includes('xmlhttprequest') ||
+        rawMessage.includes('preflight') ||
+        rawMessage.includes('err_failed') ||
+        rawMessage.includes('network request failed');
+
+      if (isCorsLikeError || firebaseCode === 'storage/unknown') {
+        return 'Firebase Storage rechazó la subida por CORS desde este dominio. Debes agregar el origin "https://sofisuarez49-creator.github.io" en la configuración CORS del bucket.';
+      }
+      if (firebaseCode === 'storage/unauthorized') {
+        return 'No tienes permisos para subir archivos. Revisa las reglas de Firebase Storage.';
+      }
+      if (firebaseCode === 'storage/canceled') {
+        return 'La subida fue cancelada.';
+      }
+      if (firebaseCode === 'storage/retry-limit-exceeded') {
+        return 'La subida agotó los reintentos por red. Intenta nuevamente.';
+      }
+      return err?.message || 'No se pudo subir el archivo.';
+    }
+
+    function uploadWithTimeout(uploadTask, timeoutMs = 30000) {
+      return new Promise((resolve, reject) => {
+        let finished = false;
+        const timer = setTimeout(() => {
+          if (finished) return;
+          finished = true;
+          try { uploadTask.cancel(); } catch (_) {}
+          reject(new Error('La subida no respondió a tiempo. Esto suele pasar por CORS o por bloqueo de red.'));
+        }, timeoutMs);
+
+        uploadTask.on(
+          'state_changed',
+          () => {},
+          (error) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            reject(error);
+          },
+          () => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            resolve(uploadTask.snapshot);
+          }
+        );
+      });
+    }
+
     async function uploadAudioFileForCategory(file, category, displayName = '') {
       const error = validateAudioFile(file);
       if (error) throw new Error(error);
@@ -1330,13 +1384,14 @@
       const uniqueId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const path = `audioLibrary/${folder}/${uniqueId}-${safeName}.${extension}`;
       const ref = firebaseStorage.ref(path);
-      const snapshot = await ref.put(file, {
+      const uploadTask = ref.put(file, {
         contentType: file.type,
         customMetadata: {
           category: folder,
           originalName: file.name
         }
       });
+      const snapshot = await uploadWithTimeout(uploadTask, 30000);
       const url = await snapshot.ref.getDownloadURL();
 
       return {
@@ -1370,7 +1425,7 @@
       } catch (err) {
         setAudioUploadStatus(category, {
           loading: false,
-          error: err?.message || 'No se pudo subir el archivo.',
+          error: normalizeAudioUploadError(err),
           success: ''
         });
       }
