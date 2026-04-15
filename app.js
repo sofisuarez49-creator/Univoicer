@@ -3235,7 +3235,7 @@
       });
       const favBtn = document.getElementById('favUniverseBtn');
       if (favBtn) {
-        favBtn.onclick = (e) => {
+        favBtn.onclick = async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
@@ -3246,7 +3246,7 @@
           currentNode.isFavorite = !currentNode.isFavorite;
           syncFavoriteUniverseSetFromNodes();
           saveUniverseNodes();
-          flushCloudSync();
+          await flushCloudSync();
 
           renderUniverseView();
           renderMapView();
