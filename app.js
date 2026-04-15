@@ -90,12 +90,7 @@
     const WORLD_ORBIT_MIN_CENTER_DISTANCE = 230;
     let firebaseDb = null;
     let cloudSyncTimer = null;
-    let collectionModel = {
-      actors: [],
-      characters: [],
-      universes: [],
-      videos: []
-    };
+    let collectionModel = createEmptyCollectionModel();
 
     let marathonPlayer = null;
     let marathonPlayerReady = false;
@@ -274,8 +269,73 @@
         characters: [],
         universes: [],
         videos: [],
-        worldMemberships: []
+        worldMemberships: [],
+        audioLibrary: createEmptyAudioLibrary()
       };
+    }
+
+    function createEmptyAudioLibrary() {
+      return {
+        voces: [],
+        fondos: []
+      };
+    }
+
+    function normalizeAudioTimestamp(value, fallback) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return new Date(numeric).toISOString();
+      }
+      const text = String(value || '').trim();
+      if (text) {
+        const parsed = Date.parse(text);
+        if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+      }
+      return fallback;
+    }
+
+    function normalizeAudioLibraryItem(rawItem, fallbackCategory, index) {
+      if (!rawItem || typeof rawItem !== 'object') return null;
+      const validCategory = rawItem.category === 'voces' || rawItem.category === 'fondos'
+        ? rawItem.category
+        : fallbackCategory;
+      const createdAt = normalizeAudioTimestamp(rawItem.createdAt, new Date().toISOString());
+      const updatedAt = normalizeAudioTimestamp(rawItem.updatedAt, createdAt);
+      const parsedDurationMs = Number(rawItem.durationMs);
+
+      return {
+        id: String(rawItem.id || `audio-${validCategory}-${Date.now()}-${index}`),
+        category: validCategory,
+        name: String(rawItem.name || '').trim(),
+        storagePath: String(rawItem.storagePath || '').trim(),
+        downloadURL: String(rawItem.downloadURL || '').trim(),
+        ...(Number.isFinite(parsedDurationMs) && parsedDurationMs >= 0 ? { durationMs: parsedDurationMs } : {}),
+        createdAt,
+        updatedAt
+      };
+    }
+
+    function normalizeAudioLibrary(rawAudioLibrary) {
+      const empty = createEmptyAudioLibrary();
+      if (!rawAudioLibrary || typeof rawAudioLibrary !== 'object') return empty;
+
+      const normalizeCategoryList = (rawList, fallbackCategory) => (
+        (Array.isArray(rawList) ? rawList : [])
+          .map((item, index) => normalizeAudioLibraryItem(item, fallbackCategory, index))
+          .filter(Boolean)
+      );
+
+      return {
+        voces: normalizeCategoryList(rawAudioLibrary.voces, 'voces'),
+        fondos: normalizeCategoryList(rawAudioLibrary.fondos, 'fondos')
+      };
+    }
+
+    function ensureCollectionModelAudioLibrary(model) {
+      if (!model || typeof model !== 'object') return createEmptyAudioLibrary();
+      const normalizedAudioLibrary = normalizeAudioLibrary(model.audioLibrary);
+      model.audioLibrary = normalizedAudioLibrary;
+      return normalizedAudioLibrary;
     }
 
     function parseModelFromStorage(rawModel) {
@@ -328,11 +388,13 @@
             }))
             .filter(item => item.worldUniverseId && item.parentUniverseId)
             .filter(item => rawUniverseIds.has(item.worldUniverseId) && rawUniverseIds.has(item.parentUniverseId))
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(rawModel.audioLibrary)
       };
     }
 
     function saveCollectionModel() {
+      ensureCollectionModelAudioLibrary(collectionModel);
       localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
       scheduleCloudSync();
     }
@@ -470,7 +532,8 @@
               parentUniverseId: String(item.parentUniverseId || '')
             }))
             .filter((item) => item.worldUniverseId && item.parentUniverseId)
-          : []
+          : [],
+        audioLibrary: normalizeAudioLibrary(baseModel.audioLibrary)
       };
 
       const actorMap = new Map(model.actors.map((actor) => [normalizeEntityName(actor.name), actor]));
@@ -1035,6 +1098,7 @@
 
     function syncCollectionModelWithVideos(preserveActorsFromModel = collectionModel) {
       const nextModel = migrateLegacyVideosToModel(VIDEOS);
+      nextModel.audioLibrary = normalizeAudioLibrary(preserveActorsFromModel?.audioLibrary);
       const actorNameToActor = new Map(
         (nextModel.actors || []).map((actor) => [normalizeEntityName(actor.name), actor])
       );
@@ -1188,9 +1252,11 @@
       const storedModel = loadCollectionModelFromStorage();
       if (storedModel) {
         collectionModel = storedModel;
+        ensureCollectionModelAudioLibrary(collectionModel);
         return;
       }
       collectionModel = migrateLegacyVideosToModel(VIDEOS);
+      ensureCollectionModelAudioLibrary(collectionModel);
       saveCollectionModel();
     }
 
@@ -1234,8 +1300,13 @@
           const parsedModel = parseModelFromStorage(data.collectionModel);
           if (parsedModel) {
             collectionModel = parsedModel;
+            ensureCollectionModelAudioLibrary(collectionModel);
             localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
           }
+        }
+        if (data.audioLibrary && typeof data.audioLibrary === 'object') {
+          collectionModel.audioLibrary = normalizeAudioLibrary(data.audioLibrary);
+          localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         if (data.blockedCharactersByActor && typeof data.blockedCharactersByActor === 'object') {
           state.blockedCharactersByActor = data.blockedCharactersByActor;
@@ -1243,6 +1314,7 @@
         }
         if (!collectionModel.videos.length && VIDEOS.length) {
           collectionModel = migrateLegacyVideosToModel(VIDEOS);
+          ensureCollectionModelAudioLibrary(collectionModel);
           localStorage.setItem(COLLECTION_MODEL_STORAGE_KEY, JSON.stringify(collectionModel));
         }
         buildAutoMarathonPlaylist();
@@ -1300,6 +1372,7 @@
           universeMemberships: state.universeMemberships,
           videos: VIDEOS,
           collectionModel,
+          audioLibrary: collectionModel.audioLibrary,
           blockedCharactersByActor: state.blockedCharactersByActor
         });
       } catch (err) {
