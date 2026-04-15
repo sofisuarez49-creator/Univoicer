@@ -4501,3 +4501,15 @@
 .audio-library-feedback.is-success {
   color: #72f3b5;
 }
+
+.audio-upload-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+}
+
+.audio-upload-inline .control-input {
+  flex: 1 1 280px;
+  min-width: 220px;
+}
